@@ -1,0 +1,24 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+
+if(@SORX_PACKAGE_WITH_QUICKFIX@)
+    find_package(quickfix CONFIG QUIET)
+    foreach(_sorx_quickfix_target IN ITEMS
+            quickfix
+            quickfix::quickfix
+            QuickFIX::quickfix)
+        if(TARGET ${_sorx_quickfix_target} AND
+           NOT TARGET QuickFIX::QuickFIX)
+            add_library(QuickFIX::QuickFIX ALIAS ${_sorx_quickfix_target})
+        endif()
+    endforeach()
+    if(NOT TARGET QuickFIX::QuickFIX)
+        list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+        find_dependency(QuickFIX MODULE)
+    endif()
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/sorxTargets.cmake")
+check_required_components(sorx)

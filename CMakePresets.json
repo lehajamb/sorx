@@ -1,0 +1,72 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "msvc-dependency-free",
+      "displayName": "MSVC dependency-free",
+      "description": "Core, runtime, persistence, neutral feed, profiles, and tests without QuickFIX or integration executables.",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/dependency-free-msvc",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "SORX_ENABLE_QUICKFIX": "OFF",
+        "SORX_ENABLE_INTEGRATION": "OFF"
+      }
+    },
+    {
+      "name": "msvc-full-acceptance",
+      "displayName": "MSVC full QuickFIX and integration acceptance",
+      "description": "All SORX targets and tests; set SORX_QUICKFIX_PREFIX to an installed QuickFIX prefix before configuring.",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/full-acceptance-msvc",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "SORX_ENABLE_QUICKFIX": "ON",
+        "SORX_ENABLE_INTEGRATION": "ON",
+        "CMAKE_PREFIX_PATH": "$env{SORX_QUICKFIX_PREFIX}",
+        "QUICKFIX_ROOT": "$env{SORX_QUICKFIX_PREFIX}"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-dependency-free-build",
+      "displayName": "Build MSVC dependency-free Release",
+      "configurePreset": "msvc-dependency-free",
+      "configuration": "Release"
+    },
+    {
+      "name": "msvc-full-acceptance-build",
+      "displayName": "Build MSVC full acceptance Release",
+      "configurePreset": "msvc-full-acceptance",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "msvc-dependency-free-test",
+      "displayName": "Test MSVC dependency-free Release",
+      "configurePreset": "msvc-dependency-free",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "msvc-full-acceptance-test",
+      "displayName": "Test MSVC full acceptance Release",
+      "configurePreset": "msvc-full-acceptance",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

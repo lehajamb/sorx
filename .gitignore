@@ -1,0 +1,30 @@
+# CMake build trees and generated package/test evidence.
+/build/
+/build-*/
+/out/
+
+# Compiler and IDE by-products that must never enter the source package.
+*.obj
+*.o
+*.lib
+*.a
+*.dll
+*.so
+*.dylib
+*.exe
+*.pdb
+*.ilk
+*.user
+*.suo
+*.VC.db
+
+# Local test/runtime durability files.
+*.journal
+*.journal.lock
+*.checkpoint
+*.checkpoint.tmp
+
+# Codex/editor replacement backups are temporary verification artifacts.
+*.codex-*
+*.bak
+*~

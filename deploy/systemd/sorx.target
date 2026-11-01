@@ -1,0 +1,8 @@
+[Unit]
+Description=SORX order-router appliance
+Requires=sorx-mgmtd.service sorx-auditd.service sorxd.service
+After=network-online.target local-fs.target
+Wants=network-online.target
+
+[Install]
+WantedBy=multi-user.target

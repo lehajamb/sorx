@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package sorx.audit.v1;
+
+// Transport is mutually authenticated TLS on the dedicated audit interface.
+// Requests and responses are length-delimited and independently resumable.
+service AuditStream {
+  rpc Metadata(MetadataRequest) returns (MetadataResponse);
+  rpc Stream(StreamRequest) returns (stream RecordEnvelope);
+  rpc Acknowledge(AcknowledgeRequest) returns (AcknowledgeResponse);
+}
+
+message MetadataRequest {}
+
+message MetadataResponse {
+  uint64 earliest_sequence = 1;
+  uint64 latest_sequence = 2;
+  uint64 durable_through_sequence = 3;
+  uint64 overwrite_eligible_through_sequence = 4;
+  // Zero unless a capacity/rate qualification is authenticated, numerically
+  // coherent, and no larger than the live recorder's retained capacity.
+  uint64 retention_seconds = 5;
+  uint64 recorder_high_water_bytes = 6;
+  uint64 recorder_capacity_bytes = 7;
+  bytes current_segment_root = 8;
+  string durability_domain = 9;
+  bool retention_qualification_verified = 10;
+  uint64 retention_qualification_generation = 11;
+  uint64 qualified_usable_retained_bytes = 12;
+  uint64 qualified_maximum_bytes_per_second = 13;
+}
+
+message StreamRequest {
+  oneof start {
+    uint64 first_sequence = 1;
+    uint64 first_tai_time_ns = 2;
+  }
+  uint64 last_sequence = 3; // Zero selects a live tail.
+  uint64 resume_after_sequence = 4;
+  bool include_segment_proofs = 5;
+}
+
+message RecordEnvelope {
+  uint64 sequence = 1;
+  uint64 tai_time_ns = 2;
+  uint64 leadership_epoch = 3;
+  uint64 configuration_generation = 4;
+  uint32 record_type = 5;
+  uint32 record_version = 6;
+  bytes payload = 7;
+  fixed32 crc32c = 8;
+  bytes previous_hash = 9;
+  bytes chain_hash = 10;
+  optional SegmentProof segment_proof = 11;
+}
+
+message SegmentProof {
+  uint64 segment_id = 1;
+  uint64 first_sequence = 2;
+  uint64 last_sequence = 3;
+  bytes root_hash = 4;
+  bytes signing_key_id = 5;
+  bytes signature = 6;
+}
+
+message AcknowledgeRequest {
+  uint64 highest_contiguous_sequence = 1;
+}
+
+message AcknowledgeResponse {
+  uint64 highest_contiguous_sequence = 1;
+  uint64 earliest_retained_sequence = 2;
+  bool acknowledgement_affects_retention = 3; // Always false in v1.
+}

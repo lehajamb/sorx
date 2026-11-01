@@ -1,0 +1,103 @@
+name: SORX CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-dependency-free:
+    name: Linux / dependency-free
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DSORX_ENABLE_QUICKFIX=OFF
+          -DSORX_ENABLE_INTEGRATION=OFF
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows-dependency-free:
+    name: Windows / dependency-free
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S . -B build -A x64
+          -DBUILD_TESTING=ON
+          -DSORX_ENABLE_QUICKFIX=OFF
+          -DSORX_ENABLE_INTEGRATION=OFF
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  linux-integration:
+    name: Linux / in-process integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DSORX_ENABLE_QUICKFIX=OFF
+          -DSORX_ENABLE_INTEGRATION=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows-integration:
+    name: Windows / in-process integration
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S . -B build -A x64
+          -DBUILD_TESTING=ON
+          -DSORX_ENABLE_QUICKFIX=OFF
+          -DSORX_ENABLE_INTEGRATION=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  linux-quickfix:
+    name: Linux / QuickFIX and integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ubuntu QuickFIX development package
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends libquickfix-dev
+      - name: Configure
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DSORX_ENABLE_QUICKFIX=ON
+          -DSORX_ENABLE_INTEGRATION=ON
+          -DCMAKE_PREFIX_PATH=/usr
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

@@ -1,0 +1,26 @@
+[Unit]
+Description=SORX audit stream exporter
+After=network-online.target sorx-mgmtd.service
+Requires=sorx-mgmtd.service
+
+[Service]
+Type=simple
+User=sorx-audit
+Group=sorx-audit
+ExecStartPre=/usr/bin/sorx-auditd --check-config /etc/sorx/startup.yaml
+ExecStart=/usr/bin/sorx-auditd --config /etc/sorx/startup.yaml
+Restart=on-failure
+RestartSec=1
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/var/lib/sorx/recorder
+ReadWritePaths=/var/log/sorx /run/sorx
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=sorx.target

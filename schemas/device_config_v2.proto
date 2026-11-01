@@ -1,0 +1,221 @@
+syntax = "proto3";
+
+package sorx.appliance.v2;
+
+// Normative serialized mirror of sorx::appliance::DeviceConfigV2 and every
+// transitively referenced runtime type in include/sorx/appliance/device_config.hpp.
+// Field names intentionally match the C++ members exactly. Values represented
+// by uint16_t in C++ use uint32 on the wire and must pass runtime range checks.
+//
+// The earlier schema in this repository was an unimplemented design draft and
+// was never generated or linked into the runtime. This contract follows the
+// actual validated model; ConfigStore revision/audit state is a separate
+// persistence contract and is not embedded in DeviceConfigV2.
+
+enum DeploymentMode {
+  DEPLOYMENT_MODE_DEVELOPMENT = 0;
+  DEPLOYMENT_MODE_CERTIFICATION = 1;
+  DEPLOYMENT_MODE_PRODUCTION = 2;
+}
+
+enum HaMode {
+  HA_MODE_STANDALONE = 0;
+  HA_MODE_ACTIVE_STANDBY_SYNCHRONOUS = 1;
+  HA_MODE_ACTIVE_STANDBY_ASYNCHRONOUS = 2;
+}
+
+enum IngressProtocol {
+  INGRESS_PROTOCOL_SOBP_V1 = 0;
+  INGRESS_PROTOCOL_FIX44 = 1;
+}
+
+enum VenueConnectorType {
+  VENUE_CONNECTOR_TYPE_NATIVE_BINARY = 0;
+  VENUE_CONNECTOR_TYPE_FIX44 = 1;
+}
+
+message SignedManifestReference {
+  string manifest_reference = 1;
+  string sha256 = 2;
+  string signature_reference = 3;
+}
+
+message ManagementPlaneConfig {
+  string interface_name = 1;
+  string listen_address = 2;
+  uint32 listen_port = 3;
+  bool require_mutual_tls = 4;
+  string server_certificate_reference = 5;
+  string private_key_reference = 6;
+  string client_ca_reference = 7;
+  string aaa_provider = 8;
+  bool remote_support_enabled = 9;
+}
+
+message HardwareProfileConfig {
+  string profile_id = 1;
+  repeated uint32 realtime_cores = 2;
+  repeated uint32 management_cores = 3;
+  repeated string data_interfaces = 4;
+  repeated string audit_interfaces = 5;
+  uint32 huge_pages_2mb = 6;
+  string journal_device = 7;
+}
+
+message CapacityConfig {
+  uint32 parent_order_pool = 1;
+  uint32 child_order_pool = 2;
+  uint32 request_history_pool = 3;
+  uint32 ingress_ring_entries = 4;
+  uint32 market_data_ring_entries = 5;
+  uint32 route_command_ring_entries = 6;
+  uint32 execution_ring_entries = 7;
+  uint32 journal_ring_entries = 8;
+}
+
+message TimeDisciplineConfig {
+  string ptp_interface = 1;
+  uint64 maximum_offset_ns = 2;
+  bool require_lock_before_routing = 3;
+}
+
+message HaConfig {
+  HaMode mode = 1;
+  string node_id = 2;
+  string peer_endpoint = 3;
+  string witness_endpoint = 4;
+  string replication_interface = 5;
+  uint32 election_timeout_ms = 6;
+}
+
+message TelemetryConfig {
+  string metrics_listen_address = 1;
+  uint32 metrics_listen_port = 2;
+  string syslog_endpoint = 3;
+  bool snmp_enabled = 4;
+  bool vendor_upload_enabled = 5;
+}
+
+message RecorderConfig {
+  bool enabled = 1;
+  string storage_path = 2;
+  string audit_interface_name = 3;
+  string audit_listen_address = 4;
+  uint32 audit_listen_port = 5;
+  bool audit_require_mutual_tls = 6;
+  string audit_server_certificate_reference = 7;
+  string audit_private_key_reference = 8;
+  string audit_client_ca_reference = 9;
+  uint64 retention_seconds = 10;
+  uint64 qualified_maximum_bytes_per_second = 11;
+  uint64 tier0_usable_bytes = 12;
+  uint64 tier0_cancel_reserved_bytes = 13;
+  uint64 tier0_reconciliation_reserved_bytes = 14;
+  uint64 maximum_storage_bytes = 15;
+}
+
+message UpdateConfig {
+  string channel = 1;
+  string trust_root_reference = 2;
+  SignedManifestReference image_manifest = 3;
+  bool automatic_download = 4;
+  bool automatic_activation = 5;
+}
+
+message LicensingConfig {
+  string entitlement_reference = 1;
+  uint32 expiry_grace_hours = 2;
+}
+
+message IngressConnectorConfig {
+  string connector_id = 1;
+  IngressProtocol protocol = 2;
+  string listen_address = 3;
+  uint32 listen_port = 4;
+  string interface_name = 5;
+  string credential_reference = 6;
+  string sender_comp_id = 7;
+  string target_comp_id = 8;
+  uint32 normal_credit_limit = 9;
+  uint32 cancel_credit_limit = 10;
+}
+
+message FeedEndpointConfig {
+  string host = 1;
+  uint32 port = 2;
+  string interface_name = 3;
+}
+
+message VenueConnectorConfig {
+  uint32 venue_id = 1;
+  string venue_name = 2;
+  string connector_id = 3;
+  string connector_version = 4;
+  VenueConnectorType connector_type = 5;
+  FeedEndpointConfig feed_a = 6;
+  FeedEndpointConfig feed_b = 7;
+  FeedEndpointConfig recovery = 8;
+  string order_entry_host = 9;
+  uint32 order_entry_port = 10;
+  string order_entry_interface = 11;
+  string quickfix_settings_reference = 12;
+  string credential_reference = 13;
+  string dictionary_sha256 = 14;
+  SignedManifestReference connector_manifest = 15;
+  bool supports_reconciliation = 16;
+}
+
+message RiskLimitConfig {
+  uint64 maximum_single_order_quantity = 1;
+  uint64 maximum_single_order_notional = 2;
+  uint64 maximum_open_quantity = 3;
+  uint64 maximum_open_notional = 4;
+  uint32 maximum_open_orders = 5;
+  uint32 maximum_orders_per_second = 6;
+  bool kill_switch_engaged = 7;
+}
+
+message ScopedRiskLimitConfig {
+  string scope_id = 1;
+  RiskLimitConfig limits = 2;
+}
+
+message RoutingGenerationConfig {
+  uint64 policy_generation = 1;
+  uint64 fee_generation = 2;
+  uint64 metric_generation = 3;
+  uint64 weight_generation = 4;
+  SignedManifestReference manifest = 5;
+}
+
+message RoutingContextConfig {
+  string context_id = 1;
+  string account_context = 2;
+  string routing_config_path = 3;
+  string journal_path = 4;
+  string checkpoint_path = 5;
+  RiskLimitConfig context_risk = 6;
+  repeated ScopedRiskLimitConfig account_risk_limits = 7;
+  repeated ScopedRiskLimitConfig client_risk_limits = 8;
+  RoutingGenerationConfig routing_generations = 9;
+  repeated IngressConnectorConfig ingress_connectors = 10;
+  repeated VenueConnectorConfig venues = 11;
+}
+
+message DeviceConfigV2 {
+  uint32 schema_version = 1;
+  string device_id = 2;
+  string hostname = 3;
+  DeploymentMode deployment_mode = 4;
+  ManagementPlaneConfig management = 5;
+  HardwareProfileConfig hardware = 6;
+  CapacityConfig capacities = 7;
+  TimeDisciplineConfig time = 8;
+  HaConfig ha = 9;
+  TelemetryConfig telemetry = 10;
+  RecorderConfig recorder = 11;
+  UpdateConfig update = 12;
+  LicensingConfig licensing = 13;
+  SignedManifestReference signed_manifest = 14;
+  repeated RoutingContextConfig routing_contexts = 15;
+}

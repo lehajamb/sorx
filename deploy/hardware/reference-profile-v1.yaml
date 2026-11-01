@@ -1,0 +1,46 @@
+schema_version: 1
+profile_id: sorx-us-equities-v1
+form_factor: 1U
+context_count: 1
+
+cpu:
+  sockets: 1
+  physical_cores_minimum: 16
+  invariant_tsc_required: true
+  ecc_memory_required: true
+  smt_on_dataplane_cores: false
+  numa_nodes_allowed: 1
+
+network:
+  adapter_family: AMD-Alveo-X3522PV
+  data_port_count_minimum: 4
+  data_port_speed_gbps: 25
+  hardware_timestamping_required: true
+  pps_input_required: true
+  management_port_dedicated: true
+  audit_port_dedicated: true
+
+recorder:
+  technology: mirrored-STT-MRAM
+  usable_tier0_bytes_minimum: 4294967296
+  append_bytes_per_second_minimum: 500000000
+  append_records_per_second_minimum: 1000000
+  durable_completion_p99_999_ns_maximum: 2000
+  tier1_mirror_members: 2
+  tier1_member_bytes_minimum: 3840000000000
+  tier1_power_loss_protection_required: true
+  export_retention_seconds_minimum: 900
+
+platform:
+  tpm_version_minimum: "2.0"
+  secure_boot_required: true
+  measured_boot_required: true
+  redundant_power_required: true
+  bmc_required: true
+
+qualification:
+  binary_ingress_sustained_commands_per_second: 250000
+  binary_ingress_burst_commands_per_second: 1000000
+  binary_ingress_burst_duration_ms: 100
+  rx_to_first_tx_p99_99_ns_maximum: 10000
+  soak_hours_minimum: 72

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An interactive visual guide to SORX, the deterministic C++20 smart-order-routing library.">
+  <title>SORX — Interactive Visual Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sorx-docs.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the guide</a>
+
+  <nav class="topnav" aria-label="Guide navigation">
+    <div class="topnav-inner">
+      <a class="brand" href="#overview" aria-label="SORX guide home">SOR<em>X</em> <span>// visual guide</span></a>
+      <div class="navlinks">
+        <a href="#overview" aria-current="location">Overview</a>
+        <a href="#planes">Planes</a>
+        <a href="#routing">Route lab</a>
+        <a href="#ownership">Ownership</a>
+        <a href="#recovery">Recovery</a>
+        <a href="#sources">Sources</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="hero" id="overview">
+      <div class="wrap">
+        <p class="eyebrow">Deterministic C++20 smart-order routing</p>
+        <div class="hero-grid">
+          <div>
+            <h1>See every route.<br><em>Keep every quantity owned.</em></h1>
+            <p class="lede">
+              SORX lives inside a strategy process. It turns immutable route and market views into
+              deterministic children, commits intent before wire effects, and fails closed whenever
+              ownership is uncertain.
+            </p>
+            <div class="hero-facts" role="list" aria-label="Core SORX properties">
+              <span role="listitem">exact integer units</span>
+              <span role="listitem">one state owner</span>
+              <span role="listitem">journal before wire</span>
+              <span role="listitem">static one-hop venues</span>
+            </div>
+          </div>
+
+          <aside class="hero-status" aria-label="SORX operating model">
+            <div class="status-header">
+              <span>routing context</span>
+              <span class="live-dot">single active</span>
+            </div>
+            <dl>
+              <div><dt>Account</dt><dd>one</dd></div>
+              <div><dt>Coordinator</dt><dd>one owner</dd></div>
+              <div><dt>Arithmetic</dt><dd>exact</dd></div>
+              <div><dt>Recovery</dt><dd>fail closed</dd></div>
+            </dl>
+          </aside>
+        </div>
+
+        <div class="system-flow" role="img" aria-label="Strategy flows through the typed C++ API, SORX core, per-venue runtimes and adapters, then to direct venues">
+          <div class="flow-node neutral"><span>Caller</span><strong>Strategy</strong></div>
+          <div class="flow-link"><span class="flow-packet packet-one"></span></div>
+          <div class="flow-node management"><span>Northbound</span><strong>Typed C++ API</strong></div>
+          <div class="flow-link"><span class="flow-packet packet-two"></span></div>
+          <div class="flow-node forwarding"><span>Single owner</span><strong>SORX core</strong></div>
+          <div class="flow-link"><span class="flow-packet packet-three"></span></div>
+          <div class="flow-node control"><span>Per venue</span><strong>Runtime + adapters</strong></div>
+          <div class="flow-link"><span class="flow-packet packet-four"></span></div>
+          <div class="flow-node success"><span>Direct hop</span><strong>Venues × N</strong></div>
+        </div>
+
+        <div class="invariant-ribbon" role="list" aria-label="Five rules to remember">
+          <div role="listitem"><span>01</span><strong>Pin</strong><small>FIB · risk · adjacency · books</small></div>
+          <div role="listitem"><span>02</span><strong>Plan</strong><small>pure deterministic policy</small></div>
+          <div role="listitem"><span>03</span><strong>Prepare</strong><small>IDs · children · reservations</small></div>
+          <div role="listitem"><span>04</span><strong>Commit</strong><small>one durable logical batch</small></div>
+          <div role="listitem"><span>05</span><strong>Release</strong><small>effects and async reports</small></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section" id="planes" aria-labelledby="planes-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number">01 / mental model</span>
+          <h2 id="planes-title">Three planes, one ownership boundary</h2>
+          <p>
+            Select a plane to see what changes there, what remains immutable, and which concrete
+            SORX components enforce the boundary.
+          </p>
+        </div>
+
+        <div class="plane-layout">
+          <div class="plane-tabs" role="tablist" aria-label="SORX architecture planes">
+            <button class="plane-tab management active" id="plane-tab-management" type="button" role="tab" aria-selected="true" aria-controls="plane-detail" data-plane="management">
+              <span>Management</span>
+              <strong>Compile intent</strong>
+              <small>config · RIB · FIB · risk</small>
+            </button>
+            <button class="plane-tab control" id="plane-tab-control" type="button" role="tab" aria-selected="false" aria-controls="plane-detail" data-plane="control" tabindex="-1">
+              <span>Control</span>
+              <strong>Publish readiness</strong>
+              <small>books · sessions · adjacency</small>
+            </button>
+            <button class="plane-tab forwarding" id="plane-tab-forwarding" type="button" role="tab" aria-selected="false" aria-controls="plane-detail" data-plane="forwarding" tabindex="-1">
+              <span>Forwarding</span>
+              <strong>Own every transition</strong>
+              <small>core · runtime · effects</small>
+            </button>
+          </div>
+
+          <article class="plane-detail management" id="plane-detail" role="tabpanel" aria-labelledby="plane-tab-management">
+            <div class="detail-kicker" id="plane-kicker">Management plane</div>
+            <h3 id="plane-heading">Compile route intent into an immutable generation</h3>
+            <p id="plane-description">
+              Strict configuration becomes an authoritative RouteRib, then FibCompiler publishes a
+              generation-stamped CandidateTable. Quotes and transient disconnects never rebuild it.
+            </p>
+            <div class="component-path" id="plane-path" aria-label="Selected plane component path">
+              <span>INI</span><i aria-hidden="true">→</i><span>ValidatedConfiguration</span><i aria-hidden="true">→</i><span>RouteRib</span><i aria-hidden="true">→</i><span>CandidateTable</span>
+            </div>
+            <div class="detail-grid">
+              <div>
+                <h4>Owns</h4>
+                <ul id="plane-owns">
+                  <li>route-critical identity and exact conversions</li>
+                  <li>route administration and configured guardrails</li>
+                  <li>hard risk generations and configured caps</li>
+                </ul>
+              </div>
+              <div>
+                <h4>Does not own</h4>
+                <ul id="plane-not-owns">
+                  <li>live quotes or feed freshness</li>
+                  <li>FIX connectivity or egress pressure</li>
+                  <li>parent and child lifecycle state</li>
+                </ul>
+              </div>
+            </div>
+            <p class="source-line" id="plane-source">
+              Source: <a href="../include/sorx/config.hpp">config.hpp</a> ·
+              <a href="../include/sorx/route_rib.hpp">route_rib.hpp</a>
+            </p>
+          </article>
+        </div>
+
+        <div class="ownership-rail" role="list" aria-label="Cross-cutting SORX boundaries">
+          <div role="listitem"><span class="rail-dot forwarding"></span><strong>SorCore</strong><small>sole mutable order owner</small></div>
+          <div role="listitem"><span class="rail-dot persistence"></span><strong>Journal</strong><small>durable batch before effects</small></div>
+          <div role="listitem"><span class="rail-dot control"></span><strong>Adapters</strong><small>protocol-neutral events and intents</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section route-section" id="routing" aria-labelledby="routing-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number forwarding-text">02 / deterministic route policy</span>
+          <h2 id="routing-title">Route decision lab</h2>
+          <p>
+            Every preset is an authored replay of a real routing contract. Step through candidate
+            eligibility, pinned versions, the cross-venue sweep, child preparation, and the explicit
+            remainder—without pretending the venue views form one atomic market snapshot.
+          </p>
+        </div>
+
+        <fieldset class="scenario-picker" id="route-scenarios">
+          <legend>Choose a routing preset</legend>
+          <div class="scenario-buttons">
+            <button class="scenario-button active" type="button" aria-pressed="true" data-route-scenario="sweep">Sweep best price</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="limit">Protection limit</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="venue-cap">Venue-count cap</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="passive">Passive choice</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="marketable">Passive marketable</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="withdrawn">Venue withdrawn</button>
+          </div>
+        </fieldset>
+
+        <div class="demo-toolbar" role="group" aria-label="Routing playback controls">
+          <div class="button-group">
+            <button class="button primary" id="route-run" type="button">Run decision</button>
+            <button class="button" id="route-step" type="button">Step</button>
+            <button class="button" id="route-reset" type="button">Reset</button>
+          </div>
+          <label class="speed-control" for="route-speed">
+            Speed
+            <input id="route-speed" type="range" min="1" max="4" value="2">
+            <output id="route-speed-output" for="route-speed">2×</output>
+          </label>
+          <p class="demo-status" id="route-status" aria-live="polite">Ready · BUY 10 IOC @ 101</p>
+        </div>
+
+        <div class="order-ticket" role="group" aria-label="Selected parent order">
+          <div><span>Parent</span><strong id="route-parent">#1 · ALPHA</strong></div>
+          <div><span>Intent</span><strong id="route-intent">Aggressive IOC</strong></div>
+          <div><span>Side / quantity</span><strong id="route-order">BUY 10</strong></div>
+          <div><span>Protection</span><strong id="route-limit">101</strong></div>
+          <div><span>Maximum venues</span><strong id="route-max-venues">2</strong></div>
+        </div>
+
+        <div class="route-lab">
+          <section class="lab-panel candidates-panel" aria-labelledby="candidate-heading">
+            <div class="panel-heading">
+              <span>01</span>
+              <div><h3 id="candidate-heading">Candidate views</h3><p>per-venue, immutable, version-pinned</p></div>
+            </div>
+
+            <article class="venue-card" id="route-venue-a" data-venue="A">
+              <div class="venue-head">
+                <div><span class="venue-name">A · MOCKX-A</span><small id="route-a-priority">venue 1 · priority 1</small></div>
+                <span class="status-badge pending" id="route-a-gate">not evaluated</span>
+              </div>
+              <div class="venue-book">
+                <span>best bid <b id="route-a-bid">99 × 20</b></span>
+                <span>best ask <b id="route-a-ask">100 × 4</b></span>
+              </div>
+              <div class="depth-track"><span id="route-a-depth" role="progressbar" aria-label="Venue A consumed displayed ask depth" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-valuetext="0 of 4 displayed ask units consumed"></span></div>
+              <div class="venue-meta"><span id="route-a-health">MD LIVE · FIX READY</span><span id="route-a-pin">book g41 · adj g7</span></div>
+            </article>
+
+            <article class="venue-card" id="route-venue-b" data-venue="B">
+              <div class="venue-head">
+                <div><span class="venue-name">B · MOCKX-B</span><small id="route-b-priority">venue 2 · priority 2</small></div>
+                <span class="status-badge pending" id="route-b-gate">not evaluated</span>
+              </div>
+              <div class="venue-book">
+                <span>best bid <b id="route-b-bid">98 × 20</b></span>
+                <span>best ask <b id="route-b-ask">101 × 6</b></span>
+              </div>
+              <div class="depth-track"><span id="route-b-depth" role="progressbar" aria-label="Venue B consumed displayed ask depth" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0" aria-valuetext="0 of 6 displayed ask units consumed"></span></div>
+              <div class="venue-meta"><span id="route-b-health">MD LIVE · FIX READY</span><span id="route-b-pin">book g52 · adj g9</span></div>
+            </article>
+
+            <div class="gate-chain" role="list" aria-label="Candidate eligibility checks">
+              <span role="listitem">admin</span><i aria-hidden="true">→</i><span role="listitem">intent</span><i aria-hidden="true">→</i><span role="listitem">book</span><i aria-hidden="true">→</i><span role="listitem">fresh</span><i aria-hidden="true">→</i><span role="listitem">trading</span><i aria-hidden="true">→</i><span role="listitem">FIX</span><i aria-hidden="true">→</i><span role="listitem">egress</span><i aria-hidden="true">→</i><span role="listitem">exact</span><i aria-hidden="true">→</i><span role="listitem">risk</span>
+            </div>
+          </section>
+
+          <section class="lab-panel decision-panel" aria-labelledby="decision-heading">
+            <div class="panel-heading">
+              <span>02</span>
+              <div><h3 id="decision-heading">Decision engine</h3><p id="route-ranking">price → priority → venue ID</p></div>
+            </div>
+            <div class="decision-core" id="route-decision-core">
+              <span class="decision-pulse" aria-hidden="true"></span>
+              <small>current phase</small>
+              <strong id="route-phase">Ready to evaluate</strong>
+              <p id="route-phase-copy">No child exists until candidate evaluation, allocation, and aggregate risk checks finish.</p>
+            </div>
+            <div class="allocation-meter" role="group" aria-label="Parent quantity accounting">
+              <div class="meter-label"><span>allocated</span><strong id="route-allocated">0</strong></div>
+              <div class="meter-track"><span id="route-meter-fill" role="progressbar" aria-label="Allocated parent quantity" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0 of 10 units allocated"></span></div>
+              <div class="meter-label"><span>remainder</span><strong id="route-remainder">10</strong></div>
+            </div>
+            <ol class="event-log" id="route-log" aria-label="Routing decision event log">
+              <li class="empty">Run or step to inspect the deterministic decision.</li>
+            </ol>
+          </section>
+
+          <section class="lab-panel result-panel" aria-labelledby="result-heading">
+            <div class="panel-heading">
+              <span>03</span>
+              <div><h3 id="result-heading">Durable result</h3><p>at most one child per selected venue</p></div>
+            </div>
+            <div class="decision-summary pending" id="route-summary">
+              <span>Decision</span><strong>Pending</strong><small>no durable child intent</small>
+            </div>
+            <div class="children" id="route-children">
+              <p class="empty-state">Children appear after the allocation is prepared.</p>
+            </div>
+            <dl class="result-facts">
+              <div><dt>Remainder reason</dt><dd id="route-remainder-reason">—</dd></div>
+              <div><dt>Risk reserved</dt><dd id="route-risk">0</dd></div>
+              <div><dt>Version pins</dt><dd id="route-pins">not captured</dd></div>
+              <div><dt>Exclusions</dt><dd id="route-exclusions">none</dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div class="insight-strip" id="route-insight">
+          <span>Invariant</span>
+          <p><strong>Displayed depth only.</strong> The policy never infers hidden liquidity, and truncated depth remains explicitly unknown.</p>
+        </div>
+
+        <p class="source-line section-source">
+          Sources: <a href="../src/routing_policy.cpp">RoutingPolicy::aggressive_ioc / passive_gtc</a> ·
+          <a href="../tests/routing_tests.cpp">routing_tests.cpp</a> ·
+          <a href="../examples/multi_mockx/main.cpp">multi_mockx demo</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="ownership" aria-labelledby="ownership-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number persistence-text">03 / ownership and durability</span>
+          <h2 id="ownership-title">The journal decides when effects may escape</h2>
+          <p>
+            A successful receipt means validation, ingress sequencing, and durable journal commit.
+            Venue acceptance remains asynchronous. Step through the coupled parent, child, and risk
+            states to see why unknown dispatch outcomes are never reallocated.
+          </p>
+        </div>
+
+        <fieldset class="scenario-picker" id="lifecycle-scenarios">
+          <legend>Choose an ownership preset</legend>
+          <div class="scenario-buttons">
+            <button class="scenario-button active" type="button" aria-pressed="true" data-life-scenario="fill">Happy fill</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="cancel">Cancel</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="replace">Replace</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="unknown">Unknown dispatch</button>
+          </div>
+        </fieldset>
+
+        <div class="demo-toolbar" role="group" aria-label="Ownership playback controls">
+          <div class="button-group">
+            <button class="button primary" id="life-run" type="button">Run lifecycle</button>
+            <button class="button" id="life-step" type="button">Step</button>
+            <button class="button" id="life-reset" type="button">Reset</button>
+          </div>
+          <p class="demo-status" id="life-status" aria-live="polite">Ready · parent #1</p>
+        </div>
+
+        <div class="ownership-lab">
+          <section class="state-column" aria-labelledby="state-heading">
+            <div class="panel-heading">
+              <span>A</span>
+              <div><h3 id="state-heading">Coupled state</h3><p>one coordinator owns every transition</p></div>
+            </div>
+            <div class="state-card parent-state">
+              <span>Parent <b id="life-parent-id">#1 · revision 1</b></span>
+              <strong id="life-parent-state">ROUTING</strong>
+              <small id="life-parent-copy">waiting for a durable route decision</small>
+            </div>
+            <div class="child-stack" id="life-children">
+              <div class="state-card child-state muted"><span>Children</span><strong>NONE</strong><small>no quantity has been prepared</small></div>
+            </div>
+            <div class="risk-meter" role="group" aria-label="Risk reservation">
+              <div><span>Risk reservation</span><strong id="life-risk-label">0 / 10 held</strong></div>
+              <div class="risk-track"><span id="life-risk-fill" role="progressbar" aria-label="Reserved risk quantity" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0 of 10 units held"></span></div>
+              <small id="life-risk-copy">Reservations are created with ChildPrepared.</small>
+            </div>
+          </section>
+
+          <section class="boundary-column" aria-labelledby="boundary-heading">
+            <div class="panel-heading">
+              <span>B</span>
+              <div><h3 id="boundary-heading">Commit boundary</h3><p>records first, effects second</p></div>
+            </div>
+            <div class="boundary-flow">
+              <div><span>Core event</span><strong id="life-event">ParentSubmit</strong></div>
+              <i aria-hidden="true">→</i>
+              <div class="persistence-box"><span>Durable record</span><strong id="life-record">not committed</strong></div>
+              <i aria-hidden="true">→</i>
+              <div><span>External effect</span><strong id="life-effect">blocked</strong></div>
+            </div>
+            <div class="receipt-card" id="life-receipt">
+              <span>CommandReceipt</span>
+              <strong>not issued</strong>
+              <small>receipt ≠ venue acknowledgement</small>
+            </div>
+            <ol class="event-log ownership-log" id="life-log" aria-label="Ownership event log">
+              <li class="empty">Run or step to follow the journal and wire boundary.</li>
+            </ol>
+          </section>
+        </div>
+
+        <div class="crash-lab">
+          <div class="crash-copy">
+            <span class="tag persistence-tag">Crash-point explorer</span>
+            <h3>Where did the process stop?</h3>
+            <p>Select a boundary. The answer changes retry rights, but never creates two owners for the same quantity.</p>
+          </div>
+          <div class="crash-points" role="group" aria-label="Crash-point selector">
+            <button class="crash-point active" type="button" aria-pressed="true" data-crash-point="before"><span>01</span>Before commit</button>
+            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="prepared"><span>02</span>Committed, pre-wire</button>
+            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="wire"><span>03</span>After wire, pre-ack</button>
+            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="terminal"><span>04</span>Definite terminal</button>
+          </div>
+          <div class="crash-detail" id="crash-detail" aria-live="polite">
+            <span class="status-badge pending">NO RECEIPT</span>
+            <h4>No durable command, no released effect</h4>
+            <p>The caller may retry because SORX did not report durable acceptance.</p>
+          </div>
+        </div>
+
+        <div class="priority-lanes">
+          <div class="lane-label"><span>Cancellation rule</span><strong>Recorded child mapping; no fresh FIB lookup</strong></div>
+          <div class="queue-lane cancel-lane"><span>reserved cancel / risk-off</span><i>drains first</i><b>FIX Cancel</b></div>
+          <div class="queue-lane normal-lane"><span>new / replacement</span><i>bounded</i><b>FIX New</b></div>
+          <p>Feed failure removes a venue from new price-sensitive routing. It never blocks an attempt to cancel a known child.</p>
+        </div>
+
+        <p class="source-line section-source">
+          Sources: <a href="../src/order_core.cpp">order_core.cpp</a> ·
+          <a href="../src/runtime.cpp">runtime.cpp</a> ·
+          <a href="../tests/dispatch_lifecycle_tests.cpp">dispatch_lifecycle_tests.cpp</a> ·
+          <a href="../tests/risk_conservation_tests.cpp">risk_conservation_tests.cpp</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section recovery-section" id="recovery" aria-labelledby="recovery-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number control-text">04 / feed continuity and restart</span>
+          <h2 id="recovery-title">Withdraw first. Recover from a proven cut.</h2>
+          <p>
+            The neutral FeedEngine publishes owned book generations. A gap removes LIVE health
+            synchronously, while startup keeps routing closed until journal, child ownership, market,
+            FIX, and accounting gates agree.
+          </p>
+        </div>
+
+        <div class="recovery-grid">
+          <section class="feed-lab" aria-labelledby="feed-heading">
+            <div class="panel-heading">
+              <span>A</span>
+              <div><h3 id="feed-heading">Feed state machine</h3><p>snapshot cut + buffered live sequence</p></div>
+            </div>
+            <div class="scenario-buttons compact" id="feed-scenarios">
+              <button class="scenario-button active" type="button" aria-pressed="true" data-feed-scenario="stitch">Snapshot + stitch</button>
+              <button class="scenario-button" type="button" aria-pressed="false" data-feed-scenario="gap">Inject sequence gap</button>
+            </div>
+            <div class="feed-controls" role="group" aria-label="Feed playback controls">
+              <button class="button primary" id="feed-run" type="button">Run feed</button>
+              <button class="button" id="feed-step" type="button">Step</button>
+              <button class="button" id="feed-reset" type="button">Reset</button>
+              <span id="feed-status" aria-live="polite">Ready</span>
+            </div>
+            <div class="feed-states" role="list" aria-label="Feed engine states">
+              <div class="feed-state active" role="listitem" aria-current="step" data-feed-state="SNAPSHOTTING"><span>01</span><strong>SNAPSHOTTING</strong></div>
+              <i aria-hidden="true">→</i>
+              <div class="feed-state" role="listitem" data-feed-state="STITCHING"><span>02</span><strong>STITCHING</strong></div>
+              <i aria-hidden="true">→</i>
+              <div class="feed-state" role="listitem" data-feed-state="LIVE"><span>03</span><strong>LIVE</strong></div>
+              <i aria-hidden="true">↘</i>
+              <div class="feed-state" role="listitem" data-feed-state="RECOVERING"><span>04</span><strong>RECOVERING</strong></div>
+            </div>
+            <div class="sequence-panel">
+              <div><span>session</span><strong id="feed-session">—</strong></div>
+              <div><span>snapshot cut</span><strong id="feed-cut">—</strong></div>
+              <div><span>next sequence</span><strong id="feed-next">1</strong></div>
+              <div><span>high-water</span><strong id="feed-high-water">—</strong></div>
+              <div><span>buffered packets</span><strong id="feed-buffered">0</strong></div>
+            </div>
+            <div class="feed-book">
+              <span>published BookView</span>
+              <strong id="feed-book">no publication yet</strong>
+              <small id="feed-action">waiting for a proven snapshot cut</small>
+            </div>
+            <ol class="event-log" id="feed-log" aria-label="Feed recovery event log">
+              <li class="empty">Run or step to follow snapshot and live continuity.</li>
+            </ol>
+          </section>
+
+          <section class="startup-lab" aria-labelledby="startup-heading">
+            <div class="panel-heading">
+              <span>B</span>
+              <div><h3 id="startup-heading">Recovery gate</h3><p>new routing remains closed</p></div>
+            </div>
+            <div class="routing-gate closed" id="routing-gate">
+              <span>routing gate</span><strong>RECOVERY ONLY</strong><small>no new parent may route</small>
+            </div>
+            <div class="recovery-outcomes" role="group" aria-label="Child reconciliation outcome">
+              <button class="scenario-button active" type="button" aria-pressed="true" data-recovery-outcome="resolved">Children resolved</button>
+              <button class="scenario-button" type="button" aria-pressed="false" data-recovery-outcome="ambiguous">Inject AMBIGUOUS child</button>
+            </div>
+            <ol class="gate-list" id="recovery-gates">
+              <li data-gate="0"><span>01</span><div><strong>Lock + identity</strong><small>exclusive journal; compatible route-critical hash</small></div><b>pending</b></li>
+              <li data-gate="1"><span>02</span><div><strong>Replay durable state</strong><small>parents, children, reservations, IDs, counters</small></div><b>pending</b></li>
+              <li data-gate="2"><span>03</span><div><strong>Restore session stores</strong><small>FIX sequence state before logon</small></div><b>pending</b></li>
+              <li data-gate="3"><span>04</span><div><strong>Resolve every child</strong><small>Prepared, Working, or definite terminal; AMBIGUOUS blocks recovery</small></div><b>pending</b></li>
+              <li data-gate="4"><span>05</span><div><strong>Prove readiness</strong><small>books LIVE/fresh/trading; FIX ready; accounting consistent</small></div><b>pending</b></li>
+            </ol>
+            <div class="recovery-controls" role="group" aria-label="Recovery gate playback controls">
+              <button class="button primary" id="recovery-run" type="button">Run recovery</button>
+              <button class="button" id="recovery-step" type="button">Step</button>
+              <button class="button" id="recovery-reset" type="button">Reset</button>
+            </div>
+            <p class="demo-status" id="recovery-status" aria-live="polite">0 / 5 gates satisfied</p>
+          </section>
+        </div>
+
+        <div class="recovery-rules">
+          <article><span>Continuity loss</span><strong>LIVE is withdrawn immediately</strong><p>A sequence gap publishes a non-LIVE generation before requesting a fresh snapshot.</p></article>
+          <article><span>Torn tail</span><strong>Incomplete batch is ignored</strong><p>Committed corruption is rejected; a partial uncommitted tail is not replayed.</p></article>
+          <article><span>MockX limitation</span><strong>No order-status query</strong><p>Only Prepared is provably unsent. Other unresolved nonterminal children retain ownership and risk.</p></article>
+        </div>
+
+        <p class="source-line section-source">
+          Sources: <a href="../include/sorx/md/feed_engine.hpp">feed_engine.hpp</a> ·
+          <a href="../src/feed_engine.cpp">feed_engine.cpp</a> ·
+          <a href="../include/sorx/persistence/journal.hpp">journal.hpp</a> ·
+          <a href="../tests/feed_engine_tests.cpp">feed_engine_tests.cpp</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section sources-section" id="sources" aria-labelledby="sources-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number success-text">05 / contracts and source map</span>
+          <h2 id="sources-title">From mental model to searchable symbols</h2>
+          <p>
+            The guide is intentionally not an API reference. Use these entry points to move from a
+            visual contract into the exact public types, deterministic state machine, persistence,
+            adapters, and acceptance scenarios.
+          </p>
+        </div>
+
+        <div class="contract-grid">
+          <article class="api-card">
+            <span>Northbound contract</span>
+            <h3><a href="../include/sorx/runtime.hpp">SorRuntime</a></h3>
+            <dl>
+              <div><dt>submit(order)</dt><dd>durably accept a new parent command</dd></div>
+              <div><dt>cancel(parent)</dt><dd>target recorded active children</dd></div>
+              <div><dt>replace(replacement)</dt><dd>cancel, account, then route a new revision</dd></div>
+              <div><dt>trace(order)</dt><dd>inspect risk and route policy without mutation</dd></div>
+              <div><dt>inspect()</dt><dd>snapshot coordinator-owned state</dd></div>
+            </dl>
+          </article>
+          <article class="contract-card">
+            <span>Successful CommandReceipt</span>
+            <strong>validated + sequenced + journal committed</strong>
+            <p>It does not mean a venue has acknowledged, accepted, or filled the child.</p>
+          </article>
+          <article class="contract-card">
+            <span>Exact units</span>
+            <strong>Price, Quantity, RationalConversion</strong>
+            <p>No floating-point routing arithmetic. Inexact route-critical conversion fails closed.</p>
+          </article>
+        </div>
+
+        <div class="source-map">
+          <a class="source-card management-card" href="../include/sorx/config.hpp"><span>Management</span><strong>config.hpp</strong><small>strict schema, route-critical hash, risk and identities</small></a>
+          <a class="source-card management-card" href="../include/sorx/route_rib.hpp"><span>Management</span><strong>route_rib.hpp</strong><small>RouteRib, CandidateTable, FibCompiler</small></a>
+          <a class="source-card forwarding-card" href="../include/sorx/order_core.hpp"><span>Forwarding</span><strong>order_core.hpp</strong><small>events, states, effects, reports, snapshots</small></a>
+          <a class="source-card forwarding-card" href="../src/routing_policy.cpp"><span>Policy</span><strong>routing_policy.cpp</strong><small>IOC sweep, passive ranking, exclusions, remainder</small></a>
+          <a class="source-card persistence-card" href="../src/runtime.cpp"><span>Coordinator</span><strong>runtime.cpp</strong><small>queues, durable batches, reports, egress release</small></a>
+          <a class="source-card persistence-card" href="../src/persistence/journal.cpp"><span>Persistence</span><strong>journal.cpp</strong><small>canonical batches, checksum, lock, replay, checkpoint</small></a>
+          <a class="source-card control-card" href="../include/sorx/md/feed_engine.hpp"><span>Market data</span><strong>feed_engine.hpp</strong><small>snapshot, stitch, continuity, owned BookView publication</small></a>
+          <a class="source-card control-card" href="../include/sorx/adapters/order_entry.hpp"><span>Boundary</span><strong>order_entry.hpp</strong><small>neutral intents, reports, dispatch ownership states</small></a>
+          <a class="source-card success-card" href="../configs/multi_mockx/sorx.ini"><span>Concrete fixture</span><strong>multi_mockx/sorx.ini</strong><small>strict two-venue configuration used by acceptance</small></a>
+          <a class="source-card success-card" href="../examples/multi_mockx/main.cpp"><span>End-to-end</span><strong>multi_mockx/main.cpp</strong><small>4 + 6 sweep, FIX rendering, fills, conservation</small></a>
+          <a class="source-card neutral-card" href="../docs/SORX_TARGET_ARCHITECTURE.md"><span>Design contract</span><strong>SORX_TARGET_ARCHITECTURE.md</strong><small>authoritative target architecture and acceptance plan</small></a>
+          <a class="source-card neutral-card" href="../tests/crash_matrix_tests.cpp"><span>Acceptance</span><strong>crash_matrix_tests.cpp</strong><small>journal/wire crash points and deterministic recovery</small></a>
+        </div>
+
+        <div class="non-goals">
+          <div><span>Not claimed</span><strong>atomic cross-venue market snapshot</strong></div>
+          <div><span>Not performed</span><strong>post-dispatch liquidity chasing</strong></div>
+          <div><span>Not supported</span><strong>multi-hop routing or discovery protocols</strong></div>
+          <div><span>Not embedded</span><strong>HTTP server or active/standby HA</strong></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Built from the current SORX C++ source, architecture contract, deterministic examples, and acceptance tests.</p>
+    </div>
+  </footer>
+
+  <script src="sorx-docs.js"></script>
+</body>
+</html>
+

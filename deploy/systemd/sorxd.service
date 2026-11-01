@@ -1,0 +1,33 @@
+[Unit]
+Description=SORX bounded data plane
+After=network-online.target sorx-mgmtd.service
+Requires=sorx-mgmtd.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=sorx-data
+Group=sorx-data
+EnvironmentFile=-/etc/sorx/dataplane.env
+ExecStartPre=/usr/bin/sorxctl --check-config /etc/sorx/startup.yaml
+ExecStart=/usr/bin/sorxd --config /etc/sorx/startup.yaml
+Restart=on-failure
+RestartSec=1
+LimitMEMLOCK=infinity
+LimitRTPRIO=99
+OOMScoreAdjust=-900
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/sorx /run/sorx
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_PACKET
+CapabilityBoundingSet=CAP_IPC_LOCK CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_NICE
+AmbientCapabilities=CAP_IPC_LOCK CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_NICE
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=sorx.target

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema
+    xmlns:sbe="http://fixprotocol.io/2016/sbe"
+    package="sorx.protocol.sobp.v1"
+    id="27001"
+    version="1"
+    semanticVersion="1.0.0"
+    byteOrder="bigEndian"
+    description="SORX Binary Order Protocol v1 fixed payload schema">
+  <!--
+    Each payload is preceded by the separately specified 64-byte SOBP session
+    header (magic/version/type/flags/length/session/sequence/request/time/
+    credits/reserved/CRC32C). The offsets and blockLength values below are
+    normative and match the allocation-free C++ codec.
+  -->
+  <types>
+    <type name="ascii24" primitiveType="char" length="24" characterEncoding="US-ASCII"/>
+    <type name="ascii32" primitiveType="char" length="32" characterEncoding="US-ASCII"/>
+    <type name="ascii48" primitiveType="char" length="48" characterEncoding="US-ASCII"/>
+    <type name="ascii52" primitiveType="char" length="52" characterEncoding="US-ASCII"/>
+    <!-- Encoded on wire and required to be zero by the session codec. -->
+    <type name="reserved16" primitiveType="uint16" semanticType="Reserved"/>
+
+    <enum name="Side" encodingType="uint8">
+      <validValue name="Buy">1</validValue>
+      <validValue name="Sell">2</validValue>
+    </enum>
+    <enum name="RoutingIntent" encodingType="uint8">
+      <validValue name="AggressiveIoc">1</validValue>
+      <validValue name="PassiveGtc">2</validValue>
+    </enum>
+    <enum name="MassCancelScope" encodingType="uint8">
+      <validValue name="Session">1</validValue>
+      <validValue name="Instrument">2</validValue>
+      <validValue name="Venue">3</validValue>
+      <validValue name="InstrumentAndVenue">4</validValue>
+    </enum>
+    <enum name="ExecutionStatus" encodingType="uint8">
+      <validValue name="Pending">1</validValue>
+      <validValue name="Working">2</validValue>
+      <validValue name="PartiallyFilled">3</validValue>
+      <validValue name="Filled">4</validValue>
+      <validValue name="Canceled">5</validValue>
+      <validValue name="Rejected">6</validValue>
+      <validValue name="Ambiguous">7</validValue>
+    </enum>
+    <enum name="ApplianceStatus" encodingType="uint16">
+      <validValue name="Bootstrapping">1</validValue>
+      <validValue name="RecoveryOnly">2</validValue>
+      <validValue name="Ready">3</validValue>
+      <validValue name="Degraded">4</validValue>
+      <validValue name="Maintenance">5</validValue>
+      <validValue name="Failed">6</validValue>
+    </enum>
+    <enum name="RejectCode" encodingType="uint16">
+      <validValue name="Malformed">1</validValue>
+      <validValue name="UnsupportedVersion">2</validValue>
+      <validValue name="SessionMismatch">3</validValue>
+      <validValue name="SequenceMismatch">4</validValue>
+      <validValue name="DuplicateRequestConflict">5</validValue>
+      <validValue name="CreditsExhausted">6</validValue>
+      <validValue name="InvalidOrder">7</validValue>
+      <validValue name="RiskRejected">8</validValue>
+      <validValue name="RoutingUnavailable">9</validValue>
+      <validValue name="InternalFailure">10</validValue>
+    </enum>
+  </types>
+
+  <sbe:message name="Logon" id="1" blockLength="56">
+    <field name="minimumVersion" id="1" type="uint16" offset="0"/>
+    <field name="maximumVersion" id="2" type="uint16" offset="2"/>
+    <field name="heartbeatIntervalMs" id="3" type="uint32" offset="4"/>
+    <field name="clientInstanceId" id="4" type="uint64" offset="8"/>
+    <field name="resumeFromSequence" id="5" type="uint64" offset="16"/>
+    <field name="accountContext" id="6" type="ascii32" offset="24"/>
+  </sbe:message>
+  <sbe:message name="Heartbeat" id="2" blockLength="16">
+    <field name="lastReceivedSequence" id="1" type="uint64" offset="0"/>
+    <field name="monotonicTimeNs" id="2" type="uint64" offset="8"/>
+  </sbe:message>
+  <sbe:message name="NewOrder" id="10" blockLength="64">
+    <field name="parentOrderId" id="1" type="uint64" offset="0"/>
+    <field name="instrumentId" id="2" type="uint32" offset="8"/>
+    <field name="side" id="3" type="Side" offset="12"/>
+    <field name="intent" id="4" type="RoutingIntent" offset="13"/>
+    <field name="reserved" id="5" type="reserved16" offset="14"/>
+    <field name="quantity" id="6" type="uint64" offset="16"/>
+    <field name="limitPrice" id="7" type="int64" offset="24"/>
+    <field name="clientOrderId" id="8" type="ascii32" offset="32"/>
+  </sbe:message>
+  <sbe:message name="CancelOrder" id="11" blockLength="40">
+    <field name="parentOrderId" id="1" type="uint64" offset="0"/>
+    <field name="clientOrderId" id="2" type="ascii32" offset="8"/>
+  </sbe:message>
+  <sbe:message name="ReplaceOrder" id="12" blockLength="56">
+    <field name="parentOrderId" id="1" type="uint64" offset="0"/>
+    <field name="newTotalQuantity" id="2" type="uint64" offset="8"/>
+    <field name="newLimitPrice" id="3" type="int64" offset="16"/>
+    <field name="clientOrderId" id="4" type="ascii32" offset="24"/>
+  </sbe:message>
+  <sbe:message name="MassCancel" id="13" blockLength="44">
+    <field name="scope" id="1" type="MassCancelScope" offset="0"/>
+    <field name="sideFilter" id="2" type="uint8" offset="1"/>
+    <field name="reserved" id="3" type="reserved16" offset="2"/>
+    <field name="instrumentId" id="4" type="uint32" offset="4"/>
+    <field name="venueId" id="5" type="uint32" offset="8"/>
+    <field name="clientOrderId" id="6" type="ascii32" offset="12"/>
+  </sbe:message>
+  <sbe:message name="DurableAck" id="20" blockLength="28">
+    <field name="acknowledgedRequestId" id="1" type="uint64" offset="0"/>
+    <field name="journalRecordId" id="2" type="uint64" offset="8"/>
+    <field name="ingressSequence" id="3" type="uint64" offset="16"/>
+    <field name="acknowledgedType" id="4" type="uint16" offset="24"/>
+    <field name="reserved" id="5" type="reserved16" offset="26"/>
+  </sbe:message>
+  <sbe:message name="Reject" id="21" blockLength="64">
+    <field name="rejectedRequestId" id="1" type="uint64" offset="0"/>
+    <field name="code" id="2" type="RejectCode" offset="8"/>
+    <field name="rejectedType" id="3" type="uint16" offset="10"/>
+    <field name="detail" id="4" type="ascii52" offset="12"/>
+  </sbe:message>
+  <sbe:message name="Execution" id="22" blockLength="88">
+    <field name="originatingRequestId" id="1" type="uint64" offset="0"/>
+    <field name="parentOrderId" id="2" type="uint64" offset="8"/>
+    <field name="childOrderId" id="3" type="uint64" offset="16"/>
+    <field name="venueId" id="4" type="uint32" offset="24"/>
+    <field name="status" id="5" type="ExecutionStatus" offset="28"/>
+    <field name="side" id="6" type="Side" offset="29"/>
+    <field name="reserved" id="7" type="reserved16" offset="30"/>
+    <field name="lastQuantity" id="8" type="uint64" offset="32"/>
+    <field name="lastPrice" id="9" type="int64" offset="40"/>
+    <field name="cumulativeQuantity" id="10" type="uint64" offset="48"/>
+    <field name="leavesQuantity" id="11" type="uint64" offset="56"/>
+    <field name="executionId" id="12" type="ascii24" offset="64"/>
+  </sbe:message>
+  <sbe:message name="Status" id="23" blockLength="76">
+    <field name="status" id="1" type="ApplianceStatus" offset="0"/>
+    <field name="routingEnabled" id="2" type="uint8" offset="2"/>
+    <field name="killSwitchActive" id="3" type="uint8" offset="3"/>
+    <field name="lastIngressSequence" id="4" type="uint64" offset="4"/>
+    <field name="activeParents" id="5" type="uint32" offset="12"/>
+    <field name="activeChildren" id="6" type="uint32" offset="16"/>
+    <field name="normalCreditsAvailable" id="7" type="uint32" offset="20"/>
+    <field name="cancelCreditsAvailable" id="8" type="uint32" offset="24"/>
+    <field name="detail" id="9" type="ascii48" offset="28"/>
+  </sbe:message>
+</sbe:messageSchema>

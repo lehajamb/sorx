@@ -1,0 +1,4 @@
+# Reference 16-core qualification topology only. The image builder must render
+# these CPU sets from the signed hardware profile and the readiness gate must
+# reject any topology mismatch before routing is enabled.
+isolcpus=domain,managed_irq,2-13 nohz_full=2-13 rcu_nocbs=2-13 irqaffinity=0-1,14-15 numa_balancing=disable nowatchdog nmi_watchdog=0 skew_tick=1 transparent_hugepage=never default_hugepagesz=2M hugepagesz=2M hugepages=8192 iommu=pt audit=1

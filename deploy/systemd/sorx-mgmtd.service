@@ -1,0 +1,24 @@
+[Unit]
+Description=SORX management plane
+After=network-online.target
+
+[Service]
+Type=simple
+User=sorx-mgmt
+Group=sorx-mgmt
+ExecStartPre=/usr/bin/sorx-mgmtd --check-config /etc/sorx/startup.yaml
+ExecStart=/usr/bin/sorx-mgmtd --config /etc/sorx/startup.yaml
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/sorx/config /var/log/sorx /run/sorx
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=sorx.target
