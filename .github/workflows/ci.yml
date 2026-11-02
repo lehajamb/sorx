@@ -85,10 +85,23 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Install Ubuntu QuickFIX development package
+      - name: Check out C++20-compatible QuickFIX
+        uses: actions/checkout@v4
+        with:
+          repository: quickfix/quickfix
+          ref: 2ce8a60667d95a55cdc57a210f165e19cb757126 # v1.16.0
+          path: build-dependencies/quickfix
+          persist-credentials: false
+      - name: Build and install QuickFIX
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends libquickfix-dev
+          cmake -S build-dependencies/quickfix -B "$RUNNER_TEMP/quickfix-build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/quickfix-install" \
+            -DQUICKFIX_SHARED_LIBS=OFF \
+            -DQUICKFIX_EXAMPLES=OFF \
+            -DQUICKFIX_TESTS=OFF
+          cmake --build "$RUNNER_TEMP/quickfix-build" --target quickfix --parallel 2
+          cmake --install "$RUNNER_TEMP/quickfix-build"
       - name: Configure
         run: >-
           cmake -S . -B build
@@ -96,7 +109,7 @@ jobs:
           -DBUILD_TESTING=ON
           -DSORX_ENABLE_QUICKFIX=ON
           -DSORX_ENABLE_INTEGRATION=ON
-          -DCMAKE_PREFIX_PATH=/usr
+          -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/quickfix-install"
       - name: Build
         run: cmake --build build --parallel
       - name: Test

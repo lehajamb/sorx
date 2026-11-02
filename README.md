@@ -183,6 +183,10 @@ and its library directory, then expose that prefix through the portable
 `SORX_QUICKFIX_PREFIX` environment convention and CMake's standard
 `CMAKE_PREFIX_PATH`. No developer-specific path is required.
 
+Use QuickFIX with C++20-compatible headers, such as the 1.16.0 release used by
+CI. Ubuntu 24.04's `libquickfix-dev` package still contains dynamic exception
+specifications that cannot compile with SORX's C++20 requirement.
+
 PowerShell/MSVC:
 
 ```powershell
@@ -365,4 +369,5 @@ python -m pytest -q
 
 The SORX CI workflow always starts from a clean checkout and separately gates
 dependency-free and integration builds on Linux and Windows, plus the Linux
-QuickFIX adapter against Ubuntu's packaged QuickFIX development library.
+QuickFIX adapter against a source build of QuickFIX 1.16.0 pinned to an upstream
+commit in the workflow.
