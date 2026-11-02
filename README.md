@@ -1,5 +1,7 @@
 # SORX
 
+[Browse the SORX wiki](https://github.com/lehajamb/sorx/wiki) for build and integration guides, routing and recovery contracts, and appliance implementation boundaries.
+
 SORX is a deterministic C++20 smart-order-routing codebase with two explicit
 execution tiers: the original embedded `SorCore`/`SorRuntime` reference model,
 and a new bounded appliance-path foundation for a fixed-hardware order-router.
