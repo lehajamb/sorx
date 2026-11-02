@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="An interactive visual guide to SORX, the deterministic C++20 smart-order-routing library.">
-  <title>SORX — Interactive Visual Guide</title>
+  <meta name="description" content="Understand SORX smart order routing through interactive examples: venue selection, live liquidity, configured limits, partial fills, and recovery.">
+  <title>SORX — Smart Order Routing, Explained</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,13 +15,15 @@
 
   <nav class="topnav" aria-label="Guide navigation">
     <div class="topnav-inner">
-      <a class="brand" href="#overview" aria-label="SORX guide home">SOR<em>X</em> <span>// visual guide</span></a>
+      <a class="brand" href="#overview" aria-label="SORX guide home">SOR<em>X</em> <span>// routing guide</span></a>
       <div class="navlinks">
         <a href="#overview" aria-current="location">Overview</a>
-        <a href="#planes">Planes</a>
-        <a href="#routing">Route lab</a>
-        <a href="#ownership">Ownership</a>
+        <a href="#rules">Rules &amp; quotes</a>
+        <a href="#routing">Routing</a>
+        <a href="#ownership">Order outcomes</a>
+        <a href="#capabilities">Capabilities</a>
         <a href="#recovery">Recovery</a>
+        <a href="#planes">Architecture</a>
         <a href="#sources">Sources</a>
       </div>
     </div>
@@ -30,70 +32,513 @@
   <main id="main">
     <header class="hero" id="overview">
       <div class="wrap">
-        <p class="eyebrow">Deterministic C++20 smart-order routing</p>
+        <p class="eyebrow">Smart order routing · an interactive guide</p>
         <div class="hero-grid">
           <div>
-            <h1>See every route.<br><em>Keep every quantity owned.</em></h1>
+            <h1>You decide what to trade.<br><em>SORX decides where.</em></h1>
             <p class="lede">
-              SORX lives inside a strategy process. It turns immutable route and market views into
-              deterministic children, commits intent before wire effects, and fails closed whenever
-              ownership is uncertain.
+              Your strategy decides when and how much to trade. SORX uses the latest available
+              venue prices, displayed liquidity, and your routing limits to choose where to send
+              the order. It then tracks each venue order through fills, cancellations, and recovery.
             </p>
             <div class="hero-facts" role="list" aria-label="Core SORX properties">
-              <span role="listitem">exact integer units</span>
-              <span role="listitem">one state owner</span>
-              <span role="listitem">journal before wire</span>
-              <span role="listitem">static one-hop venues</span>
+              <span role="listitem">live prices and depth</span>
+              <span role="listitem">configured venue limits</span>
+              <span role="listitem">explicit order outcomes</span>
             </div>
           </div>
 
-          <aside class="hero-status" aria-label="SORX operating model">
+          <aside class="hero-status" aria-label="Example: buying ten shares">
             <div class="status-header">
-              <span>routing context</span>
-              <span class="live-dot">single active</span>
+              <span>buy 10 shares · limit 1.01</span>
+              <span class="example-badge">example</span>
             </div>
             <dl>
-              <div><dt>Account</dt><dd>one</dd></div>
-              <div><dt>Coordinator</dt><dd>one owner</dd></div>
-              <div><dt>Arithmetic</dt><dd>exact</dd></div>
-              <div><dt>Recovery</dt><dd>fail closed</dd></div>
+              <div><dt>Venue A offers</dt><dd>4 at 1.00</dd></div>
+              <div><dt>Venue B offers</dt><dd>6 at 1.01</dd></div>
+              <div><dt>SORX allocates</dt><dd>4 to A + 6 to B</dd></div>
+              <div><dt>Actual fills</dt><dd>confirmed by venues</dd></div>
             </dl>
           </aside>
         </div>
 
-        <div class="system-flow" role="img" aria-label="Strategy flows through the typed C++ API, SORX core, per-venue runtimes and adapters, then to direct venues">
-          <div class="flow-node neutral"><span>Caller</span><strong>Strategy</strong></div>
+        <div class="system-flow" role="img" aria-label="The strategy submits a buy order. SORX checks rules and quotes, selects venues, sends child orders, and tracks venue reports.">
+          <div class="flow-node neutral"><span>Strategy</span><strong>Buy 10 shares</strong></div>
           <div class="flow-link"><span class="flow-packet packet-one"></span></div>
-          <div class="flow-node management"><span>Northbound</span><strong>Typed C++ API</strong></div>
+          <div class="flow-node management"><span>Inputs</span><strong>Rules + live quotes</strong></div>
           <div class="flow-link"><span class="flow-packet packet-two"></span></div>
-          <div class="flow-node forwarding"><span>Single owner</span><strong>SORX core</strong></div>
+          <div class="flow-node forwarding"><span>SORX</span><strong>Select venues</strong></div>
           <div class="flow-link"><span class="flow-packet packet-three"></span></div>
-          <div class="flow-node control"><span>Per venue</span><strong>Runtime + adapters</strong></div>
+          <div class="flow-node control"><span>Child orders</span><strong>A: 4 · B: 6</strong></div>
           <div class="flow-link"><span class="flow-packet packet-four"></span></div>
-          <div class="flow-node success"><span>Direct hop</span><strong>Venues × N</strong></div>
+          <div class="flow-node success"><span>Venue reports</span><strong>Track outcomes</strong></div>
         </div>
 
-        <div class="invariant-ribbon" role="list" aria-label="Five rules to remember">
-          <div role="listitem"><span>01</span><strong>Pin</strong><small>FIB · risk · adjacency · books</small></div>
-          <div role="listitem"><span>02</span><strong>Plan</strong><small>pure deterministic policy</small></div>
-          <div role="listitem"><span>03</span><strong>Prepare</strong><small>IDs · children · reservations</small></div>
-          <div role="listitem"><span>04</span><strong>Commit</strong><small>one durable logical batch</small></div>
-          <div role="listitem"><span>05</span><strong>Release</strong><small>effects and async reports</small></div>
-        </div>
+        <p class="guide-note"><strong>About these examples.</strong> These are scripted explanations of the embedded reference router,
+          not a live exchange connection or a C++ engine running in your browser. The codebase also contains a separate
+          bounded routing tier, described under <a href="#capabilities">Capabilities</a>.</p>
+        <a class="guide-cta" href="#routing">Try the 10-share routing example <span aria-hidden="true">→</span></a>
       </div>
     </header>
+
+    <section class="section" id="rules" aria-labelledby="rules-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number">01 / configured rules, changing market</span>
+          <h2 id="rules-title">Fixed rules can produce different routes</h2>
+          <p>Configuration defines which venues SORX may use and the limits it must respect.
+            Market data tells it what is available when it makes a routing decision.</p>
+        </div>
+        <div class="explanation-grid">
+          <article class="explanation-card management-card">
+            <span class="tag">Configured rules</span>
+            <h3>Where may this order go?</h3>
+            <p>Enable venues A and B, allow at most two venues, and set quantity caps and priorities.
+              These rules stay in effect until the configuration changes.</p>
+          </article>
+          <article class="explanation-card control-card">
+            <span class="tag">Live inputs</span>
+            <h3>What is available now?</h3>
+            <p>Prices, displayed sizes, market-data health, and order-entry readiness change independently.
+              An enabled venue can still be unavailable for a particular decision.</p>
+          </article>
+          <article class="explanation-card forwarding-card">
+            <span class="tag">Routing decision</span>
+            <h3>How should 10 shares be split?</h3>
+            <p>With A offering 4 at 1.00 and B offering 6 at 1.01, allocate 4 + 6.
+              If B later offers 10 at 0.99, a new order can go entirely to B under the same rules.</p>
+          </article>
+        </div>
+        <p class="guide-note"><strong>“Static routes” means configured venue connections.</strong> It does not mean every order takes the same path.
+          Updated quotes affect a new decision; they do not automatically move orders already sent to a venue.</p>
+      </div>
+    </section>
+
+    <section class="section route-section" id="routing" aria-labelledby="routing-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number forwarding-text">02 / choose the venues</span>
+          <h2 id="routing-title">Where would SORX send this order?</h2>
+          <p>
+            Start with “Sweep best price,” then select “Same rules, new prices” to see the route change.
+            Each example shows the available liquidity, the reason for the decision, and the orders
+            SORX would send. Allocated shares have not necessarily filled.
+          </p>
+        </div>
+
+        <fieldset class="scenario-picker" id="route-scenarios">
+          <legend>Choose a routing example</legend>
+          <div class="scenario-buttons">
+            <button class="scenario-button active" type="button" aria-pressed="true" data-route-scenario="sweep">Sweep best price</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="new-prices">Same rules, new prices</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="quantity-cap">Per-venue quantity cap</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="limit">Protection limit</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="venue-cap">Venue-count cap</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="passive">Passive choice</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="marketable">Passive marketable</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="withdrawn">Venue withdrawn</button>
+          </div>
+        </fieldset>
+
+        <div class="demo-toolbar" role="group" aria-label="Routing playback controls">
+          <div class="button-group">
+            <button class="button primary" id="route-run" type="button">Run decision</button>
+            <button class="button" id="route-step" type="button">Step</button>
+            <button class="button" id="route-reset" type="button">Reset</button>
+          </div>
+          <label class="speed-control" for="route-speed">
+            Speed
+            <input id="route-speed" type="range" min="1" max="4" value="2">
+            <output id="route-speed-output" for="route-speed">2×</output>
+          </label>
+          <p class="demo-status" id="route-status" aria-live="polite" aria-atomic="true">Ready · BUY 10 IOC @ 1.01</p>
+        </div>
+
+        <div class="order-ticket" role="group" aria-label="Selected parent order">
+          <div><span>Parent</span><strong id="route-parent">#1 · ALPHA</strong></div>
+          <div><span>Intent</span><strong id="route-intent">Aggressive IOC</strong></div>
+          <div><span>Side / quantity</span><strong id="route-order">BUY 10</strong></div>
+          <div><span>Limit price</span><strong id="route-limit">1.01</strong></div>
+          <div><span>Maximum venues</span><strong id="route-max-venues">2</strong></div>
+        </div>
+
+        <div class="route-lab">
+          <section class="lab-panel candidates-panel" aria-labelledby="candidate-heading">
+            <div class="panel-heading">
+              <span>01</span>
+              <div><h3 id="candidate-heading">Available liquidity</h3><p>displayed quotes at this decision</p></div>
+            </div>
+
+            <article class="venue-card" id="route-venue-a" data-venue="A">
+              <div class="venue-head">
+                <div><span class="venue-name">A · MOCKX-A</span><small id="route-a-priority">venue 1 · priority 1</small></div>
+                <span class="status-badge pending" id="route-a-gate">not evaluated</span>
+              </div>
+              <div class="venue-book">
+                <span>best bid <b id="route-a-bid">0.99 × 20</b></span>
+                <span>best ask <b id="route-a-ask">1.00 × 4</b></span>
+              </div>
+              <div class="depth-track"><span id="route-a-depth" role="progressbar" aria-label="Venue A displayed ask quantity allocated" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-valuetext="0 of 4 displayed shares allocated; fills not yet known"></span></div>
+              <div class="venue-meta"><span id="route-a-health">MD LIVE · FIX READY</span><span id="route-a-pin">book g41 · adj g7</span></div>
+              <div class="venue-meta"><span>Quantity cap</span><span id="route-a-cap">100 shares per decision</span></div>
+            </article>
+
+            <article class="venue-card" id="route-venue-b" data-venue="B">
+              <div class="venue-head">
+                <div><span class="venue-name">B · MOCKX-B</span><small id="route-b-priority">venue 2 · priority 2</small></div>
+                <span class="status-badge pending" id="route-b-gate">not evaluated</span>
+              </div>
+              <div class="venue-book">
+                <span>best bid <b id="route-b-bid">0.98 × 20</b></span>
+                <span>best ask <b id="route-b-ask">1.01 × 6</b></span>
+              </div>
+              <div class="depth-track"><span id="route-b-depth" role="progressbar" aria-label="Venue B displayed ask quantity allocated" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0" aria-valuetext="0 of 6 displayed shares allocated; fills not yet known"></span></div>
+              <div class="venue-meta"><span id="route-b-health">MD LIVE · FIX READY</span><span id="route-b-pin">book g52 · adj g9</span></div>
+              <div class="venue-meta"><span>Quantity cap</span><span id="route-b-cap">100 shares per decision</span></div>
+            </article>
+
+            <details class="technical-detail compact-detail"><summary>Venue eligibility checks</summary>
+            <div class="gate-chain" role="list" aria-label="Candidate eligibility checks">
+              <span role="listitem">admin</span><i aria-hidden="true">→</i><span role="listitem">intent</span><i aria-hidden="true">→</i><span role="listitem">book</span><i aria-hidden="true">→</i><span role="listitem">fresh</span><i aria-hidden="true">→</i><span role="listitem">trading</span><i aria-hidden="true">→</i><span role="listitem">FIX</span><i aria-hidden="true">→</i><span role="listitem">egress</span><i aria-hidden="true">→</i><span role="listitem">exact</span><i aria-hidden="true">→</i><span role="listitem">risk</span>
+            </div>
+            </details>
+          </section>
+
+          <section class="lab-panel decision-panel" aria-labelledby="decision-heading">
+            <div class="panel-heading">
+              <span>02</span>
+              <div><h3 id="decision-heading">Why this route?</h3><p id="route-ranking">price → priority → venue ID</p></div>
+            </div>
+            <div class="decision-core" id="route-decision-core">
+              <span class="decision-pulse" aria-hidden="true"></span>
+              <small>current phase</small>
+              <strong id="route-phase">Ready to evaluate</strong>
+              <p id="route-phase-copy">Check eligible venues, compare prices, then allocate the order within its limits.</p>
+            </div>
+            <div class="allocation-meter" role="group" aria-label="Parent quantity accounting">
+              <div class="meter-label"><span>allocated</span><strong id="route-allocated">0</strong></div>
+              <div class="meter-track"><span id="route-meter-fill" role="progressbar" aria-label="Allocated parent quantity" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0 of 10 units allocated"></span></div>
+              <div class="meter-label"><span>not allocated</span><strong id="route-remainder">10</strong></div>
+            </div>
+            <ol class="event-log" id="route-log" aria-label="Routing decision event log">
+              <li class="empty">Run or step to inspect the deterministic decision.</li>
+            </ol>
+          </section>
+
+          <section class="lab-panel result-panel" aria-labelledby="result-heading">
+            <div class="panel-heading">
+              <span>03</span>
+              <div><h3 id="result-heading">Orders SORX would send</h3><p>one child order per selected venue; fills arrive later</p></div>
+            </div>
+            <div class="decision-summary pending" id="route-summary">
+              <span>Decision</span><strong>Pending</strong><small>no venue order prepared</small>
+            </div>
+            <div class="children" id="route-children">
+              <p class="empty-state">Children appear after the allocation is prepared.</p>
+            </div>
+            <dl class="result-facts">
+              <div><dt>Why shares remain</dt><dd id="route-remainder-reason">—</dd></div>
+              <div><dt>Risk reserved</dt><dd id="route-risk">0</dd></div>
+              <div><dt>Input versions</dt><dd id="route-pins">not captured</dd></div>
+              <div><dt>Excluded venues</dt><dd id="route-exclusions">none</dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div class="insight-strip" id="route-insight">
+          <span>What to notice</span>
+          <p><strong>Displayed depth only.</strong> The policy never infers hidden liquidity, and truncated depth remains explicitly unknown.</p>
+        </div>
+
+        <details class="technical-detail">
+          <summary>Order types, depth, and price units</summary>
+          <p><strong>IOC (immediate or cancel):</strong> attempt execution now within the price limit; any unfilled quantity is canceled.
+            <strong>Passive GTC (good till canceled):</strong> the order must be non-marketable across eligible venues, then the whole quantity is placed at one venue.</p>
+          <p><strong>One child can cover several price levels.</strong> Buying 3 shares at 1.00 and 2 at 1.01 on the same venue creates one child for 5 shares with limit 1.01.
+            The limit is the worst allocated price, not a promised fill price.</p>
+          <p>Examples display prices with two decimal places. Internally, 1.00 is represented by 100 integer ticks.
+            Each venue book has its own version; SORX does not claim a simultaneous cross-venue snapshot.</p>
+        </details>
+
+        <p class="source-line section-source">
+          Sources: <a href="../src/routing_policy.cpp">RoutingPolicy::aggressive_ioc / passive_gtc</a> ·
+          <a href="../tests/routing_tests.cpp">routing_tests.cpp</a> ·
+          <a href="../examples/multi_mockx/main.cpp">multi_mockx demo</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="ownership" aria-labelledby="ownership-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number persistence-text">03 / track the outcome</span>
+          <h2 id="ownership-title">Sent, filled, or still uncertain?</h2>
+          <p>
+            The original request is the parent order; each order sent to a venue is a child.
+            Venue reports tell SORX how much filled and what remains. If an outcome is uncertain,
+            SORX retains the reservation instead of risking a duplicate trade.
+          </p>
+        </div>
+
+        <fieldset class="scenario-picker" id="lifecycle-scenarios">
+          <legend>Choose an order outcome</legend>
+          <div class="scenario-buttons">
+            <button class="scenario-button active" type="button" aria-pressed="true" data-life-scenario="fill">Full fill</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="partial">Partial fill</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="cancel">Cancel</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="replace">Replace</button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="unknown">Uncertain outcome</button>
+          </div>
+        </fieldset>
+
+        <div class="demo-toolbar" role="group" aria-label="Ownership playback controls">
+          <div class="button-group">
+            <button class="button primary" id="life-run" type="button">Run lifecycle</button>
+            <button class="button" id="life-step" type="button">Step</button>
+            <button class="button" id="life-reset" type="button">Reset</button>
+          </div>
+          <p class="demo-status" id="life-status" aria-live="polite" aria-atomic="true">Ready · parent #1</p>
+        </div>
+
+        <div class="ownership-lab">
+          <section class="state-column" aria-labelledby="state-heading">
+            <div class="panel-heading">
+              <span>A</span>
+              <div><h3 id="state-heading">Order status and reserved risk</h3><p>each share stays accounted for</p></div>
+            </div>
+            <div class="state-card parent-state">
+              <span>Parent <b id="life-parent-id">#1 · revision 1</b></span>
+              <strong id="life-parent-state">ROUTING</strong>
+              <small id="life-parent-copy">waiting for a durable route decision</small>
+            </div>
+            <div class="child-stack" id="life-children">
+              <div class="state-card child-state muted"><span>Children</span><strong>NONE</strong><small>no quantity has been prepared</small></div>
+            </div>
+            <div class="risk-meter" role="group" aria-label="Risk reservation">
+              <div><span>Risk reservation</span><strong id="life-risk-label">0 / 10 held</strong></div>
+              <div class="risk-track"><span id="life-risk-fill" role="progressbar" aria-label="Reserved risk quantity" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0 of 10 units held"></span></div>
+              <small id="life-risk-copy">Preparing a child reserves capacity for its full quantity.</small>
+            </div>
+          </section>
+
+          <section class="boundary-column" aria-labelledby="boundary-heading">
+            <div class="panel-heading">
+              <span>B</span>
+              <div><h3 id="boundary-heading">What happens next?</h3><p>record the decision before sending the order</p></div>
+            </div>
+            <details class="technical-detail compact-detail">
+              <summary>Order events and saved records</summary>
+            <div class="boundary-flow">
+              <div><span>Order event</span><strong id="life-event">ParentSubmit</strong></div>
+              <i aria-hidden="true">→</i>
+              <div class="persistence-box"><span>Saved record</span><strong id="life-record">not committed</strong></div>
+              <i aria-hidden="true">→</i>
+              <div><span>Venue action</span><strong id="life-effect">blocked</strong></div>
+            </div>
+            </details>
+            <div class="receipt-card" id="life-receipt">
+              <span>SORX receipt</span>
+              <strong>not issued</strong>
+              <small>receipt ≠ venue acknowledgement</small>
+            </div>
+            <ol class="event-log ownership-log" id="life-log" aria-label="Ownership event log">
+              <li class="empty">Run or step to follow the journal and wire boundary.</li>
+            </ol>
+          </section>
+        </div>
+
+        <p class="guide-note"><strong>A partial fill is not a new routing request.</strong> If 6 of 10 shares fill and the other 4 are confirmed canceled,
+          SORX reports the 4 unfilled shares. The caller decides whether to submit another order.
+          An explicit replace waits for the old children to finish before routing a new revision.</p>
+
+        <details class="technical-detail">
+          <summary>Engineering detail: crash points and cancellation queues</summary>
+        <div class="crash-lab">
+          <div class="crash-copy">
+            <span class="tag persistence-tag">Crash-point explorer</span>
+            <h3>Where did the process stop?</h3>
+            <p>Select a boundary. The answer changes retry rights, but never creates two owners for the same quantity.</p>
+          </div>
+          <div class="crash-points" role="group" aria-label="Crash-point selector">
+            <button class="crash-point active" type="button" aria-pressed="true" data-crash-point="before"><span>01</span>Before commit</button>
+            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="prepared"><span>02</span>Committed, pre-wire</button>
+            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="wire"><span>03</span>After wire, pre-ack</button>
+            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="terminal"><span>04</span>Definite terminal</button>
+          </div>
+          <div class="crash-detail" id="crash-detail" aria-live="polite">
+            <span class="status-badge pending">NO RECEIPT</span>
+            <h4>Before recording: no order has been released</h4>
+            <p>At this selected point the command has not been recorded and no order has been released. The caller can retry; a missing receipt alone does not prove that an order was never sent.</p>
+          </div>
+        </div>
+
+        <div class="priority-lanes">
+          <div class="lane-label"><span>Cancellation rule</span><strong>Recorded child mapping; no fresh FIB lookup</strong></div>
+          <div class="queue-lane cancel-lane"><span>reserved cancel / risk-off</span><i>drains first</i><b>FIX Cancel</b></div>
+          <div class="queue-lane normal-lane"><span>new / replacement</span><i>bounded</i><b>FIX New</b></div>
+          <p>Feed failure removes a venue from new price-sensitive routing. It never blocks an attempt to cancel a known child.</p>
+        </div>
+
+        </details>
+
+        <p class="source-line section-source">
+          Sources: <a href="../src/order_core.cpp">order_core.cpp</a> ·
+          <a href="../src/runtime.cpp">runtime.cpp</a> ·
+          <a href="../tests/dispatch_lifecycle_tests.cpp">dispatch_lifecycle_tests.cpp</a> ·
+          <a href="../tests/risk_conservation_tests.cpp">risk_conservation_tests.cpp</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="capabilities" aria-labelledby="capabilities-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number success-text">04 / capabilities today</span>
+          <h2 id="capabilities-title">How SORX fits into smart order routing</h2>
+          <p>The <a href="https://www.quantt.co.uk/resources/smart-order-routing-guide">Quantt Smart Order Routing Guide</a>
+            describes venue selection using price, liquidity, costs, execution quality, and feedback.
+            Here is where the current SORX implementation fits.</p>
+        </div>
+        <p class="guide-note"><strong>Two implementation tiers.</strong> The embedded reference router powers the examples above.
+          The bounded routing components add fixed-capacity processing and supplied execution-quality scores.
+          They are a foundation for integration, not a complete production routing service.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="SORX capability comparison; scroll horizontally on small screens">
+          <table class="capability-table">
+            <caption>Current code capabilities, separated by implementation tier</caption>
+            <thead><tr><th scope="col">Routing concern</th><th scope="col">Embedded reference router</th><th scope="col">Bounded routing components</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Price and liquidity</th><td>Sweep displayed depth within the order's price limit, quantity caps, and venue-count limit.</td><td>Price remains first for aggressive orders. Adaptive scores rank venues at equal prices.</td></tr>
+              <tr><th scope="row">Fees and venue quality</th><td>Configured priorities; configured latency helps rank passive venues.</td><td>Scores use supplied fees, latency, and reject metrics. Passive scoring also uses fill quality and adverse selection.</td></tr>
+              <tr><th scope="row">Passive placement</th><td>Place the full quantity at one eligible venue, ranked by priority, configured latency, then venue ID.</td><td>Adaptive scores rank eligible venues for a single passive child.</td></tr>
+              <tr><th scope="row">Changing conditions</th><td>New decisions use updated books and venue readiness under the configured policy.</td><td>Versioned inputs and weights are supplied by the caller. No online learning or automatic metric estimation is provided.</td></tr>
+              <tr><th scope="row">Unfilled quantity</th><td>Track fills and confirmed unfilled quantity. No automatic rerouting after dispatch.</td><td>No automatic residual-retry loop supplied.</td></tr>
+              <tr><th scope="row">Dark pools and execution schedules</th><td colspan="2">No dark-pool or midpoint routing strategy, and no TWAP/VWAP scheduling algorithm. Those require additional implementation.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="insight-strip">
+          <span>Example</span>
+          <p><strong>A better quote can change the next route.</strong> That is different from learning a better routing policy from historical fills.
+            SORX supports the former; the bounded tier can consume supplied quality metrics, but does not learn them itself.</p>
+        </div>
+        <p class="source-line section-source">Implementation:
+          <a href="../src/routing_policy.cpp">reference routing policy</a> ·
+          <a href="../src/policy/adaptive_policy.cpp">adaptive scoring</a> ·
+          <a href="../src/dataplane/route_kernel.cpp">bounded route kernel</a> ·
+          <a href="../docs/APPLIANCE_IMPLEMENTATION.md">integration status and remaining release gates</a></p>
+      </div>
+    </section>
+
+    <section class="section recovery-section" id="recovery" aria-labelledby="recovery-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-number control-text">05 / when something goes wrong</span>
+          <h2 id="recovery-title">Pause new routing until the state is known</h2>
+          <p>
+            A detected gap in market data makes a venue unavailable for new price-sensitive orders.
+            After a restart, SORX checks saved orders and venue readiness before accepting new routing.
+            An unresolved child keeps routing closed so the same shares cannot be ordered twice.
+          </p>
+        </div>
+
+        <div class="recovery-grid">
+          <section class="feed-lab" aria-labelledby="feed-heading">
+            <div class="panel-heading">
+              <span>A</span>
+              <div><h3 id="feed-heading">When can a quote be used?</h3><p>restore the book, then verify continuous updates</p></div>
+            </div>
+            <div class="scenario-buttons compact" id="feed-scenarios">
+              <button class="scenario-button active" type="button" aria-pressed="true" data-feed-scenario="stitch">Snapshot + stitch</button>
+              <button class="scenario-button" type="button" aria-pressed="false" data-feed-scenario="gap">Inject sequence gap</button>
+            </div>
+            <div class="feed-controls" role="group" aria-label="Feed playback controls">
+              <button class="button primary" id="feed-run" type="button">Run feed</button>
+              <button class="button" id="feed-step" type="button">Step</button>
+              <button class="button" id="feed-reset" type="button">Reset</button>
+              <span id="feed-status" aria-live="polite" aria-atomic="true">Ready</span>
+            </div>
+            <div class="feed-states" role="list" aria-label="Feed engine states">
+              <div class="feed-state active" role="listitem" aria-current="step" data-feed-state="SNAPSHOTTING"><span>01</span><strong>SNAPSHOTTING</strong></div>
+              <i aria-hidden="true">→</i>
+              <div class="feed-state" role="listitem" data-feed-state="STITCHING"><span>02</span><strong>STITCHING</strong></div>
+              <i aria-hidden="true">→</i>
+              <div class="feed-state" role="listitem" data-feed-state="LIVE"><span>03</span><strong>LIVE</strong></div>
+              <i aria-hidden="true">↘</i>
+              <div class="feed-state" role="listitem" data-feed-state="RECOVERING"><span>04</span><strong>RECOVERING</strong></div>
+            </div>
+            <div class="sequence-panel">
+              <div><span>session</span><strong id="feed-session">—</strong></div>
+              <div><span>snapshot cut</span><strong id="feed-cut">—</strong></div>
+              <div><span>next sequence</span><strong id="feed-next">1</strong></div>
+              <div><span>high-water</span><strong id="feed-high-water">—</strong></div>
+              <div><span>buffered packets</span><strong id="feed-buffered">0</strong></div>
+            </div>
+            <div class="feed-book">
+              <span>book available to the router</span>
+              <strong id="feed-book">no publication yet</strong>
+              <small id="feed-action">waiting for a proven snapshot cut</small>
+            </div>
+            <ol class="event-log" id="feed-log" aria-label="Feed recovery event log">
+              <li class="empty">Run or step to follow snapshot and live continuity.</li>
+            </ol>
+          </section>
+
+          <section class="startup-lab" aria-labelledby="startup-heading">
+            <div class="panel-heading">
+              <span>B</span>
+              <div><h3 id="startup-heading">When can routing resume?</h3><p>all recovery checks must pass</p></div>
+            </div>
+            <div class="routing-gate closed" id="routing-gate">
+              <span>routing gate</span><strong>RECOVERY ONLY</strong><small>no new parent may route</small>
+            </div>
+            <div class="recovery-outcomes" role="group" aria-label="Child reconciliation outcome">
+              <button class="scenario-button active" type="button" aria-pressed="true" data-recovery-outcome="resolved">Children resolved</button>
+              <button class="scenario-button" type="button" aria-pressed="false" data-recovery-outcome="ambiguous">Leave one child unresolved</button>
+            </div>
+            <ol class="gate-list" id="recovery-gates">
+              <li data-gate="0"><span>01</span><div><strong>Lock + identity</strong><small>exclusive journal; compatible route-critical hash</small></div><b>pending</b></li>
+              <li data-gate="1"><span>02</span><div><strong>Replay durable state</strong><small>parents, children, reservations, IDs, counters</small></div><b>pending</b></li>
+              <li data-gate="2"><span>03</span><div><strong>Restore session stores</strong><small>FIX sequence state before logon</small></div><b>pending</b></li>
+              <li data-gate="3"><span>04</span><div><strong>Resolve every child</strong><small>Working, CancelPending, or definite terminal; Prepared and AMBIGUOUS block recovery</small></div><b>pending</b></li>
+              <li data-gate="4"><span>05</span><div><strong>Prove readiness</strong><small>books LIVE/fresh/trading; FIX ready; accounting consistent</small></div><b>pending</b></li>
+            </ol>
+            <div class="recovery-controls" role="group" aria-label="Recovery gate playback controls">
+              <button class="button primary" id="recovery-run" type="button">Run recovery</button>
+              <button class="button" id="recovery-step" type="button">Step</button>
+              <button class="button" id="recovery-reset" type="button">Reset</button>
+            </div>
+            <p class="demo-status" id="recovery-status" aria-live="polite" aria-atomic="true">0 / 5 gates satisfied</p>
+          </section>
+        </div>
+
+        <div class="recovery-rules">
+          <article><span>Continuity loss</span><strong>LIVE is withdrawn immediately</strong><p>A sequence gap publishes a non-LIVE generation before requesting a fresh snapshot.</p></article>
+          <article><span>Torn tail</span><strong>Incomplete batch is ignored</strong><p>Committed corruption is rejected; a partial uncommitted tail is not replayed.</p></article>
+          <article><span>MockX limitation</span><strong>No order-status query</strong><p>Only Prepared is provably unsent. Other unresolved nonterminal children retain ownership and risk.</p></article>
+        </div>
+
+        <p class="source-line section-source">
+          Sources: <a href="../include/sorx/md/feed_engine.hpp">feed_engine.hpp</a> ·
+          <a href="../src/feed_engine.cpp">feed_engine.cpp</a> ·
+          <a href="../include/sorx/persistence/journal.hpp">journal.hpp</a> ·
+          <a href="../tests/feed_engine_tests.cpp">feed_engine_tests.cpp</a>
+        </p>
+      </div>
+    </section>
 
     <section class="section" id="planes" aria-labelledby="planes-title">
       <div class="wrap">
         <div class="section-head">
-          <span class="section-number">01 / mental model</span>
-          <h2 id="planes-title">Three planes, one ownership boundary</h2>
+          <span class="section-number">06 / engineering detail</span>
+          <h2 id="planes-title">How SORX separates configuration, market data, and orders</h2>
           <p>
             Select a plane to see what changes there, what remains immutable, and which concrete
             SORX components enforce the boundary.
           </p>
         </div>
 
+        <details class="technical-detail">
+          <summary>Explore the architecture and its source code</summary>
         <div class="plane-layout">
           <div class="plane-tabs" role="tablist" aria-label="SORX architecture planes">
             <button class="plane-tab management active" id="plane-tab-management" type="button" role="tab" aria-selected="true" aria-controls="plane-detail" data-plane="management">
@@ -153,366 +598,23 @@
           <div role="listitem"><span class="rail-dot persistence"></span><strong>Journal</strong><small>durable batch before effects</small></div>
           <div role="listitem"><span class="rail-dot control"></span><strong>Adapters</strong><small>protocol-neutral events and intents</small></div>
         </div>
-      </div>
-    </section>
-
-    <section class="section route-section" id="routing" aria-labelledby="routing-title">
-      <div class="wrap">
-        <div class="section-head">
-          <span class="section-number forwarding-text">02 / deterministic route policy</span>
-          <h2 id="routing-title">Route decision lab</h2>
-          <p>
-            Every preset is an authored replay of a real routing contract. Step through candidate
-            eligibility, pinned versions, the cross-venue sweep, child preparation, and the explicit
-            remainder—without pretending the venue views form one atomic market snapshot.
-          </p>
-        </div>
-
-        <fieldset class="scenario-picker" id="route-scenarios">
-          <legend>Choose a routing preset</legend>
-          <div class="scenario-buttons">
-            <button class="scenario-button active" type="button" aria-pressed="true" data-route-scenario="sweep">Sweep best price</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="limit">Protection limit</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="venue-cap">Venue-count cap</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="passive">Passive choice</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="marketable">Passive marketable</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-route-scenario="withdrawn">Venue withdrawn</button>
-          </div>
-        </fieldset>
-
-        <div class="demo-toolbar" role="group" aria-label="Routing playback controls">
-          <div class="button-group">
-            <button class="button primary" id="route-run" type="button">Run decision</button>
-            <button class="button" id="route-step" type="button">Step</button>
-            <button class="button" id="route-reset" type="button">Reset</button>
-          </div>
-          <label class="speed-control" for="route-speed">
-            Speed
-            <input id="route-speed" type="range" min="1" max="4" value="2">
-            <output id="route-speed-output" for="route-speed">2×</output>
-          </label>
-          <p class="demo-status" id="route-status" aria-live="polite" aria-atomic="true">Ready · BUY 10 IOC @ 101</p>
-        </div>
-
-        <div class="order-ticket" role="group" aria-label="Selected parent order">
-          <div><span>Parent</span><strong id="route-parent">#1 · ALPHA</strong></div>
-          <div><span>Intent</span><strong id="route-intent">Aggressive IOC</strong></div>
-          <div><span>Side / quantity</span><strong id="route-order">BUY 10</strong></div>
-          <div><span>Protection</span><strong id="route-limit">101</strong></div>
-          <div><span>Maximum venues</span><strong id="route-max-venues">2</strong></div>
-        </div>
-
-        <div class="route-lab">
-          <section class="lab-panel candidates-panel" aria-labelledby="candidate-heading">
-            <div class="panel-heading">
-              <span>01</span>
-              <div><h3 id="candidate-heading">Candidate views</h3><p>per-venue, immutable, version-pinned</p></div>
-            </div>
-
-            <article class="venue-card" id="route-venue-a" data-venue="A">
-              <div class="venue-head">
-                <div><span class="venue-name">A · MOCKX-A</span><small id="route-a-priority">venue 1 · priority 1</small></div>
-                <span class="status-badge pending" id="route-a-gate">not evaluated</span>
-              </div>
-              <div class="venue-book">
-                <span>best bid <b id="route-a-bid">99 × 20</b></span>
-                <span>best ask <b id="route-a-ask">100 × 4</b></span>
-              </div>
-              <div class="depth-track"><span id="route-a-depth" role="progressbar" aria-label="Venue A consumed displayed ask depth" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-valuetext="0 of 4 displayed ask units consumed"></span></div>
-              <div class="venue-meta"><span id="route-a-health">MD LIVE · FIX READY</span><span id="route-a-pin">book g41 · adj g7</span></div>
-            </article>
-
-            <article class="venue-card" id="route-venue-b" data-venue="B">
-              <div class="venue-head">
-                <div><span class="venue-name">B · MOCKX-B</span><small id="route-b-priority">venue 2 · priority 2</small></div>
-                <span class="status-badge pending" id="route-b-gate">not evaluated</span>
-              </div>
-              <div class="venue-book">
-                <span>best bid <b id="route-b-bid">98 × 20</b></span>
-                <span>best ask <b id="route-b-ask">101 × 6</b></span>
-              </div>
-              <div class="depth-track"><span id="route-b-depth" role="progressbar" aria-label="Venue B consumed displayed ask depth" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0" aria-valuetext="0 of 6 displayed ask units consumed"></span></div>
-              <div class="venue-meta"><span id="route-b-health">MD LIVE · FIX READY</span><span id="route-b-pin">book g52 · adj g9</span></div>
-            </article>
-
-            <div class="gate-chain" role="list" aria-label="Candidate eligibility checks">
-              <span role="listitem">admin</span><i aria-hidden="true">→</i><span role="listitem">intent</span><i aria-hidden="true">→</i><span role="listitem">book</span><i aria-hidden="true">→</i><span role="listitem">fresh</span><i aria-hidden="true">→</i><span role="listitem">trading</span><i aria-hidden="true">→</i><span role="listitem">FIX</span><i aria-hidden="true">→</i><span role="listitem">egress</span><i aria-hidden="true">→</i><span role="listitem">exact</span><i aria-hidden="true">→</i><span role="listitem">risk</span>
-            </div>
-          </section>
-
-          <section class="lab-panel decision-panel" aria-labelledby="decision-heading">
-            <div class="panel-heading">
-              <span>02</span>
-              <div><h3 id="decision-heading">Decision engine</h3><p id="route-ranking">price → priority → venue ID</p></div>
-            </div>
-            <div class="decision-core" id="route-decision-core">
-              <span class="decision-pulse" aria-hidden="true"></span>
-              <small>current phase</small>
-              <strong id="route-phase">Ready to evaluate</strong>
-              <p id="route-phase-copy">No child exists until candidate evaluation, allocation, and aggregate risk checks finish.</p>
-            </div>
-            <div class="allocation-meter" role="group" aria-label="Parent quantity accounting">
-              <div class="meter-label"><span>allocated</span><strong id="route-allocated">0</strong></div>
-              <div class="meter-track"><span id="route-meter-fill" role="progressbar" aria-label="Allocated parent quantity" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0 of 10 units allocated"></span></div>
-              <div class="meter-label"><span>remainder</span><strong id="route-remainder">10</strong></div>
-            </div>
-            <ol class="event-log" id="route-log" aria-label="Routing decision event log">
-              <li class="empty">Run or step to inspect the deterministic decision.</li>
-            </ol>
-          </section>
-
-          <section class="lab-panel result-panel" aria-labelledby="result-heading">
-            <div class="panel-heading">
-              <span>03</span>
-              <div><h3 id="result-heading">Durable result</h3><p>at most one child per selected venue</p></div>
-            </div>
-            <div class="decision-summary pending" id="route-summary">
-              <span>Decision</span><strong>Pending</strong><small>no durable child intent</small>
-            </div>
-            <div class="children" id="route-children">
-              <p class="empty-state">Children appear after the allocation is prepared.</p>
-            </div>
-            <dl class="result-facts">
-              <div><dt>Remainder reason</dt><dd id="route-remainder-reason">—</dd></div>
-              <div><dt>Risk reserved</dt><dd id="route-risk">0</dd></div>
-              <div><dt>Version pins</dt><dd id="route-pins">not captured</dd></div>
-              <div><dt>Exclusions</dt><dd id="route-exclusions">none</dd></div>
-            </dl>
-          </section>
-        </div>
-
-        <div class="insight-strip" id="route-insight">
-          <span>Invariant</span>
-          <p><strong>Displayed depth only.</strong> The policy never infers hidden liquidity, and truncated depth remains explicitly unknown.</p>
-        </div>
-
-        <p class="source-line section-source">
-          Sources: <a href="../src/routing_policy.cpp">RoutingPolicy::aggressive_ioc / passive_gtc</a> ·
-          <a href="../tests/routing_tests.cpp">routing_tests.cpp</a> ·
-          <a href="../examples/multi_mockx/main.cpp">multi_mockx demo</a>
-        </p>
-      </div>
-    </section>
-
-    <section class="section" id="ownership" aria-labelledby="ownership-title">
-      <div class="wrap">
-        <div class="section-head">
-          <span class="section-number persistence-text">03 / ownership and durability</span>
-          <h2 id="ownership-title">The journal decides when effects may escape</h2>
-          <p>
-            A successful receipt means validation, ingress sequencing, and durable journal commit.
-            Venue acceptance remains asynchronous. Step through the coupled parent, child, and risk
-            states to see why unknown dispatch outcomes are never reallocated.
-          </p>
-        </div>
-
-        <fieldset class="scenario-picker" id="lifecycle-scenarios">
-          <legend>Choose an ownership preset</legend>
-          <div class="scenario-buttons">
-            <button class="scenario-button active" type="button" aria-pressed="true" data-life-scenario="fill">Happy fill</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="cancel">Cancel</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="replace">Replace</button>
-            <button class="scenario-button" type="button" aria-pressed="false" data-life-scenario="unknown">Unknown dispatch</button>
-          </div>
-        </fieldset>
-
-        <div class="demo-toolbar" role="group" aria-label="Ownership playback controls">
-          <div class="button-group">
-            <button class="button primary" id="life-run" type="button">Run lifecycle</button>
-            <button class="button" id="life-step" type="button">Step</button>
-            <button class="button" id="life-reset" type="button">Reset</button>
-          </div>
-          <p class="demo-status" id="life-status" aria-live="polite" aria-atomic="true">Ready · parent #1</p>
-        </div>
-
-        <div class="ownership-lab">
-          <section class="state-column" aria-labelledby="state-heading">
-            <div class="panel-heading">
-              <span>A</span>
-              <div><h3 id="state-heading">Coupled state</h3><p>one coordinator owns every transition</p></div>
-            </div>
-            <div class="state-card parent-state">
-              <span>Parent <b id="life-parent-id">#1 · revision 1</b></span>
-              <strong id="life-parent-state">ROUTING</strong>
-              <small id="life-parent-copy">waiting for a durable route decision</small>
-            </div>
-            <div class="child-stack" id="life-children">
-              <div class="state-card child-state muted"><span>Children</span><strong>NONE</strong><small>no quantity has been prepared</small></div>
-            </div>
-            <div class="risk-meter" role="group" aria-label="Risk reservation">
-              <div><span>Risk reservation</span><strong id="life-risk-label">0 / 10 held</strong></div>
-              <div class="risk-track"><span id="life-risk-fill" role="progressbar" aria-label="Reserved risk quantity" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="0 of 10 units held"></span></div>
-              <small id="life-risk-copy">Reservations are created with ChildPrepared.</small>
-            </div>
-          </section>
-
-          <section class="boundary-column" aria-labelledby="boundary-heading">
-            <div class="panel-heading">
-              <span>B</span>
-              <div><h3 id="boundary-heading">Commit boundary</h3><p>records first, effects second</p></div>
-            </div>
-            <div class="boundary-flow">
-              <div><span>Core event</span><strong id="life-event">ParentSubmit</strong></div>
-              <i aria-hidden="true">→</i>
-              <div class="persistence-box"><span>Durable record</span><strong id="life-record">not committed</strong></div>
-              <i aria-hidden="true">→</i>
-              <div><span>External effect</span><strong id="life-effect">blocked</strong></div>
-            </div>
-            <div class="receipt-card" id="life-receipt">
-              <span>CommandReceipt</span>
-              <strong>not issued</strong>
-              <small>receipt ≠ venue acknowledgement</small>
-            </div>
-            <ol class="event-log ownership-log" id="life-log" aria-label="Ownership event log">
-              <li class="empty">Run or step to follow the journal and wire boundary.</li>
-            </ol>
-          </section>
-        </div>
-
-        <div class="crash-lab">
-          <div class="crash-copy">
-            <span class="tag persistence-tag">Crash-point explorer</span>
-            <h3>Where did the process stop?</h3>
-            <p>Select a boundary. The answer changes retry rights, but never creates two owners for the same quantity.</p>
-          </div>
-          <div class="crash-points" role="group" aria-label="Crash-point selector">
-            <button class="crash-point active" type="button" aria-pressed="true" data-crash-point="before"><span>01</span>Before commit</button>
-            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="prepared"><span>02</span>Committed, pre-wire</button>
-            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="wire"><span>03</span>After wire, pre-ack</button>
-            <button class="crash-point" type="button" aria-pressed="false" data-crash-point="terminal"><span>04</span>Definite terminal</button>
-          </div>
-          <div class="crash-detail" id="crash-detail" aria-live="polite">
-            <span class="status-badge pending">NO RECEIPT</span>
-            <h4>No durable command, no released effect</h4>
-            <p>The caller may retry because SORX did not report durable acceptance.</p>
-          </div>
-        </div>
-
-        <div class="priority-lanes">
-          <div class="lane-label"><span>Cancellation rule</span><strong>Recorded child mapping; no fresh FIB lookup</strong></div>
-          <div class="queue-lane cancel-lane"><span>reserved cancel / risk-off</span><i>drains first</i><b>FIX Cancel</b></div>
-          <div class="queue-lane normal-lane"><span>new / replacement</span><i>bounded</i><b>FIX New</b></div>
-          <p>Feed failure removes a venue from new price-sensitive routing. It never blocks an attempt to cancel a known child.</p>
-        </div>
-
-        <p class="source-line section-source">
-          Sources: <a href="../src/order_core.cpp">order_core.cpp</a> ·
-          <a href="../src/runtime.cpp">runtime.cpp</a> ·
-          <a href="../tests/dispatch_lifecycle_tests.cpp">dispatch_lifecycle_tests.cpp</a> ·
-          <a href="../tests/risk_conservation_tests.cpp">risk_conservation_tests.cpp</a>
-        </p>
-      </div>
-    </section>
-
-    <section class="section recovery-section" id="recovery" aria-labelledby="recovery-title">
-      <div class="wrap">
-        <div class="section-head">
-          <span class="section-number control-text">04 / feed continuity and restart</span>
-          <h2 id="recovery-title">Withdraw first. Recover from a proven cut.</h2>
-          <p>
-            The neutral FeedEngine publishes owned book generations. A gap removes LIVE health
-            synchronously, while startup keeps routing closed until journal, child ownership, market,
-            FIX, and accounting gates agree.
-          </p>
-        </div>
-
-        <div class="recovery-grid">
-          <section class="feed-lab" aria-labelledby="feed-heading">
-            <div class="panel-heading">
-              <span>A</span>
-              <div><h3 id="feed-heading">Feed state machine</h3><p>snapshot cut + buffered live sequence</p></div>
-            </div>
-            <div class="scenario-buttons compact" id="feed-scenarios">
-              <button class="scenario-button active" type="button" aria-pressed="true" data-feed-scenario="stitch">Snapshot + stitch</button>
-              <button class="scenario-button" type="button" aria-pressed="false" data-feed-scenario="gap">Inject sequence gap</button>
-            </div>
-            <div class="feed-controls" role="group" aria-label="Feed playback controls">
-              <button class="button primary" id="feed-run" type="button">Run feed</button>
-              <button class="button" id="feed-step" type="button">Step</button>
-              <button class="button" id="feed-reset" type="button">Reset</button>
-              <span id="feed-status" aria-live="polite" aria-atomic="true">Ready</span>
-            </div>
-            <div class="feed-states" role="list" aria-label="Feed engine states">
-              <div class="feed-state active" role="listitem" aria-current="step" data-feed-state="SNAPSHOTTING"><span>01</span><strong>SNAPSHOTTING</strong></div>
-              <i aria-hidden="true">→</i>
-              <div class="feed-state" role="listitem" data-feed-state="STITCHING"><span>02</span><strong>STITCHING</strong></div>
-              <i aria-hidden="true">→</i>
-              <div class="feed-state" role="listitem" data-feed-state="LIVE"><span>03</span><strong>LIVE</strong></div>
-              <i aria-hidden="true">↘</i>
-              <div class="feed-state" role="listitem" data-feed-state="RECOVERING"><span>04</span><strong>RECOVERING</strong></div>
-            </div>
-            <div class="sequence-panel">
-              <div><span>session</span><strong id="feed-session">—</strong></div>
-              <div><span>snapshot cut</span><strong id="feed-cut">—</strong></div>
-              <div><span>next sequence</span><strong id="feed-next">1</strong></div>
-              <div><span>high-water</span><strong id="feed-high-water">—</strong></div>
-              <div><span>buffered packets</span><strong id="feed-buffered">0</strong></div>
-            </div>
-            <div class="feed-book">
-              <span>published BookView</span>
-              <strong id="feed-book">no publication yet</strong>
-              <small id="feed-action">waiting for a proven snapshot cut</small>
-            </div>
-            <ol class="event-log" id="feed-log" aria-label="Feed recovery event log">
-              <li class="empty">Run or step to follow snapshot and live continuity.</li>
-            </ol>
-          </section>
-
-          <section class="startup-lab" aria-labelledby="startup-heading">
-            <div class="panel-heading">
-              <span>B</span>
-              <div><h3 id="startup-heading">Recovery gate</h3><p>new routing remains closed</p></div>
-            </div>
-            <div class="routing-gate closed" id="routing-gate">
-              <span>routing gate</span><strong>RECOVERY ONLY</strong><small>no new parent may route</small>
-            </div>
-            <div class="recovery-outcomes" role="group" aria-label="Child reconciliation outcome">
-              <button class="scenario-button active" type="button" aria-pressed="true" data-recovery-outcome="resolved">Children resolved</button>
-              <button class="scenario-button" type="button" aria-pressed="false" data-recovery-outcome="ambiguous">Inject AMBIGUOUS child</button>
-            </div>
-            <ol class="gate-list" id="recovery-gates">
-              <li data-gate="0"><span>01</span><div><strong>Lock + identity</strong><small>exclusive journal; compatible route-critical hash</small></div><b>pending</b></li>
-              <li data-gate="1"><span>02</span><div><strong>Replay durable state</strong><small>parents, children, reservations, IDs, counters</small></div><b>pending</b></li>
-              <li data-gate="2"><span>03</span><div><strong>Restore session stores</strong><small>FIX sequence state before logon</small></div><b>pending</b></li>
-              <li data-gate="3"><span>04</span><div><strong>Resolve every child</strong><small>Working, CancelPending, or definite terminal; Prepared and AMBIGUOUS block recovery</small></div><b>pending</b></li>
-              <li data-gate="4"><span>05</span><div><strong>Prove readiness</strong><small>books LIVE/fresh/trading; FIX ready; accounting consistent</small></div><b>pending</b></li>
-            </ol>
-            <div class="recovery-controls" role="group" aria-label="Recovery gate playback controls">
-              <button class="button primary" id="recovery-run" type="button">Run recovery</button>
-              <button class="button" id="recovery-step" type="button">Step</button>
-              <button class="button" id="recovery-reset" type="button">Reset</button>
-            </div>
-            <p class="demo-status" id="recovery-status" aria-live="polite" aria-atomic="true">0 / 5 gates satisfied</p>
-          </section>
-        </div>
-
-        <div class="recovery-rules">
-          <article><span>Continuity loss</span><strong>LIVE is withdrawn immediately</strong><p>A sequence gap publishes a non-LIVE generation before requesting a fresh snapshot.</p></article>
-          <article><span>Torn tail</span><strong>Incomplete batch is ignored</strong><p>Committed corruption is rejected; a partial uncommitted tail is not replayed.</p></article>
-          <article><span>MockX limitation</span><strong>No order-status query</strong><p>Only Prepared is provably unsent. Other unresolved nonterminal children retain ownership and risk.</p></article>
-        </div>
-
-        <p class="source-line section-source">
-          Sources: <a href="../include/sorx/md/feed_engine.hpp">feed_engine.hpp</a> ·
-          <a href="../src/feed_engine.cpp">feed_engine.cpp</a> ·
-          <a href="../include/sorx/persistence/journal.hpp">journal.hpp</a> ·
-          <a href="../tests/feed_engine_tests.cpp">feed_engine_tests.cpp</a>
-        </p>
+        </details>
       </div>
     </section>
 
     <section class="section sources-section" id="sources" aria-labelledby="sources-title">
       <div class="wrap">
         <div class="section-head">
-          <span class="section-number success-text">05 / contracts and source map</span>
-          <h2 id="sources-title">From mental model to searchable symbols</h2>
+          <span class="section-number success-text">07 / continue into the code</span>
+          <h2 id="sources-title">Integration and source references</h2>
           <p>
-            The guide is intentionally not an API reference. Use these entry points to move from a
-            visual contract into the exact public types, deterministic state machine, persistence,
-            adapters, and acceptance scenarios.
+            Use the <a href="https://github.com/lehajamb/sorx/wiki">SORX wiki</a> for build and integration guides.
+            Expand the source map to inspect the types, order lifecycle, and tests behind these examples.
           </p>
         </div>
 
+        <details class="technical-detail">
+          <summary>Open the API contracts and source map</summary>
         <div class="contract-grid">
           <article class="api-card">
             <span>Northbound contract</span>
@@ -556,8 +658,9 @@
           <div><span>Not claimed</span><strong>atomic cross-venue market snapshot</strong></div>
           <div><span>Not performed</span><strong>post-dispatch liquidity chasing</strong></div>
           <div><span>Not supported</span><strong>multi-hop routing or discovery protocols</strong></div>
-          <div><span>Not embedded</span><strong>HTTP server or active/standby HA</strong></div>
+          <div><span>Reference scope</span><strong>embedded library, not a hosted trading service</strong></div>
         </div>
+        </details>
       </div>
     </section>
   </main>

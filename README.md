@@ -25,19 +25,21 @@ enabled explicitly for the full adapter build.
 Read the [published SORX documentation](https://lehajamb.github.io/sorx/).
 GitHub Pages publishes the guide from `doc` whenever it changes on `main`.
 
-Open [`doc/index.html`](doc/index.html) directly in a browser for a guided,
-interactive tour of the three-plane architecture, deterministic routing,
-journaled order ownership, market-data continuity, and recovery gates. The
+Open [`doc/index.html`](doc/index.html) directly in a browser to explore how
+SORX splits a 10-share order across venues, combines configured limits with
+live liquidity, and accounts for fills, cancellations, and uncertain outcomes.
+The guide separates current routing capabilities from broader adaptive SOR
+features, with architecture and source details available on demand. The
 guide is plain HTML/CSS/JavaScript and requires no build step; Google Fonts
 are optional and system fallbacks keep it readable offline.
 
 To serve it from the repository root instead:
 
 ```powershell
-python -m http.server 8765 --bind 127.0.0.1 --directory .
+python -m http.server 8000 --bind 127.0.0.1 --directory .
 ```
 
-Then open `http://127.0.0.1:8765/doc/index.html`.
+Then open `http://127.0.0.1:8000/doc/`.
 
 ## Architecture and contracts
 
