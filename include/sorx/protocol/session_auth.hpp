@@ -133,7 +133,7 @@ struct AuthEncodeResult final {
 struct AuthVerifyResult final {
     AuthError error{AuthError::None};
     sobp_v1::ProtocolError protocol_error{sobp_v1::ProtocolError::None};
-    std::optional<sobp_v1::Message> message;
+    std::optional<sobp_v1::Message> message{};
     std::size_t authenticated_frame_size{};
 
     [[nodiscard]] explicit operator bool() const noexcept {

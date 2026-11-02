@@ -153,7 +153,7 @@ struct AggressiveCursor final {
     bool exhausted_by_limit{};
     bool exhausted_by_cap{};
     bool conversion_failure{};
-    std::vector<FillSlice> fills;
+    std::vector<FillSlice> fills{};
 };
 
 [[nodiscard]] bool cursor_precedes(
