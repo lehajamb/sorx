@@ -50,7 +50,7 @@ body {
 
 a { color: inherit; }
 button, input { font: inherit; }
-button:focus-visible, a:focus-visible, input:focus-visible {
+button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible, [tabindex="0"]:focus-visible {
   outline: 2px solid var(--forwarding);
   outline-offset: 4px;
   border-radius: 6px;
@@ -766,10 +766,44 @@ h1 em { color: var(--forwarding); font-style: normal; }
 .non-goals span { margin-bottom: 0.25rem; color: var(--danger); font-size: 0.72rem; text-transform: uppercase; }
 .non-goals strong { color: var(--text-dim); font-size: 0.72rem; line-height: 1.4; }
 
+/* Practitioner explanations share the existing venue and plane palette. */
+.example-badge { color: var(--forwarding); }
+.guide-note { margin: 1.4rem 0; padding: 1rem 1.2rem; border-left: 3px solid var(--forwarding); border-radius: 0 9px 9px 0; background: var(--bg-raised); color: var(--text-dim); font-size: 0.95rem; }
+.guide-note strong { color: var(--text); }
+.guide-note a, .section-head a { color: var(--control); text-underline-offset: 3px; }
+.guide-cta { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1rem; border: 1px solid var(--forwarding); border-radius: 8px; color: var(--forwarding); font-weight: 600; text-decoration: none; }
+.guide-cta:hover { background: var(--forwarding-dim); }
+.explanation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.explanation-card { padding: 1.3rem; border: 1px solid var(--border); border-top-width: 3px; border-radius: 12px; background: var(--panel); }
+.explanation-card.management-card { border-top-color: var(--management); }
+.explanation-card.control-card { border-top-color: var(--control); }
+.explanation-card.forwarding-card { border-top-color: var(--forwarding); }
+.explanation-card h3 { font-size: 1rem; line-height: 1.5; margin: 1rem 0 0.65rem; }
+.explanation-card p { color: var(--text-dim); margin: 0; font-size: 0.95rem; }
+.technical-detail { margin-top: 1.25rem; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-raised); }
+.technical-detail > summary { cursor: pointer; color: var(--control); font-weight: 600; }
+.technical-detail[open] > summary { margin-bottom: 1.2rem; }
+.technical-detail > p { color: var(--text-dim); }
+.technical-detail > p strong { color: var(--text); }
+.technical-detail .crash-lab { margin-top: 0; }
+.compact-detail { padding: 0.7rem; font-size: 0.8rem; }
+.compact-detail .gate-chain { margin-top: 0; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+.capability-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.92rem; }
+.capability-table caption { padding: 1rem; text-align: left; color: var(--text-faint); font-size: 0.85rem; }
+.capability-table th, .capability-table td { padding: 1rem; vertical-align: top; border-top: 1px solid var(--border); }
+.capability-table thead th { color: var(--management); background: var(--bg-raised); }
+.capability-table tbody th { width: 21%; color: var(--text); }
+.capability-table td { width: 39.5%; color: var(--text-dim); }
+
 footer { padding: 2.5rem 0 3.5rem; text-align: center; }
 footer p { max-width: 68ch; margin: 0 auto; color: var(--text-faint); font: 500 0.72rem/1.6 var(--mono); }
 
 @media (max-width: 1050px) {
+  .topnav-inner { align-items: stretch; flex-direction: column; gap: 0; padding-top: 0.75rem; }
+  .navlinks { width: 100%; overflow-x: auto; scrollbar-width: thin; }
+  .navlinks a { padding: 0.8rem 0 0.65rem; }
+  html { scroll-padding-top: 95px; }
   .route-lab { grid-template-columns: 1fr 1fr; }
   .result-panel { grid-column: 1 / -1; }
   .order-ticket { grid-template-columns: repeat(3, 1fr); }
@@ -784,6 +818,7 @@ footer p { max-width: 68ch; margin: 0 auto; color: var(--text-faint); font: 500 
 }
 
 @media (max-width: 900px) {
+  .explanation-grid { grid-template-columns: 1fr; }
   .hero-grid { grid-template-columns: 1fr; }
   .hero-status { max-width: 520px; }
   .system-flow { align-items: stretch; flex-direction: column; }
@@ -801,10 +836,6 @@ footer p { max-width: 68ch; margin: 0 auto; color: var(--text-faint); font: 500 
 }
 
 @media (max-width: 780px) {
-  .topnav-inner { align-items: stretch; flex-direction: column; gap: 0; padding-top: 0.75rem; }
-  .navlinks { width: 100%; overflow-x: auto; scrollbar-width: thin; }
-  .navlinks a { padding: 0.8rem 0 0.65rem; }
-  html { scroll-padding-top: 95px; }
   .route-lab, .ownership-lab { grid-template-columns: 1fr; }
   .result-panel { grid-column: auto; }
   .demo-toolbar { align-items: flex-start; flex-wrap: wrap; }
@@ -817,6 +848,7 @@ footer p { max-width: 68ch; margin: 0 auto; color: var(--text-faint); font: 500 
 }
 
 @media (max-width: 680px) {
+  .capability-table { min-width: 650px; }
   .wrap, .topnav-inner { width: min(100% - 1.35rem, 1160px); }
   .brand span { display: none; }
   .navlinks { gap: 0.75rem; }
