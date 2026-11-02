@@ -177,15 +177,6 @@ void append_le32(Bytes& bytes, const std::uint32_t value) {
     }
 }
 
-void append_le64(Bytes& bytes, const std::uint64_t value) {
-    for (std::size_t index = 0U; index < 8U; ++index) {
-        append_u8(
-            bytes,
-            static_cast<std::uint8_t>(
-                value >> static_cast<unsigned>(index * 8U)));
-    }
-}
-
 void put_be16(Bytes& bytes, const std::size_t offset, const std::uint16_t value) {
     bytes[offset] = static_cast<std::byte>(value >> 8U);
     bytes[offset + 1U] = static_cast<std::byte>(value);

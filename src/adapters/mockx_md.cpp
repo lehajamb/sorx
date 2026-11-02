@@ -274,7 +274,7 @@ struct BindingValue final {
 
 struct ItchDecode final {
     md::FeedError error{md::FeedError::None};
-    std::optional<md::FeedEvent> event;
+    std::optional<md::FeedEvent> event{};
     std::uint64_t snapshot_cut{};
 };
 

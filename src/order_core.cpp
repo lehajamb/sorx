@@ -1226,7 +1226,7 @@ struct SorCore::Impl final {
                 child.id);
             const ChildOrderId child_id = child.id;
             const auto child_inserted =
-                children.emplace(child.id, std::move(child));
+                children.emplace(child_id, std::move(child));
             if (!wire_inserted.second || !child_inserted.second) {
                 throw std::logic_error(
                     "preflighted child identity insertion failed");
