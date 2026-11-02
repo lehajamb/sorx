@@ -85,12 +85,12 @@ using sorx::VenueId;
     value.local_publication_time_ns = 2'001;
     value.feed_state = MarketDataState::Live;
     value.trading_state = InstrumentState::Trading;
-    for (const auto [price, quantity] : bids) {
+    for (const auto& [price, quantity] : bids) {
         const bool inserted = value.push_bid(
             sorx::md::Level{Price{price}, Quantity{quantity}, 1});
         assert(inserted);
     }
-    for (const auto [price, quantity] : asks) {
+    for (const auto& [price, quantity] : asks) {
         const bool inserted = value.push_ask(
             sorx::md::Level{Price{price}, Quantity{quantity}, 1});
         assert(inserted);
